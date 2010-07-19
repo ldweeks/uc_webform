@@ -1,0 +1,7 @@
+; $Id$
+name = Lucas
+description = "Your Mom"
+dependencies[] = webform
+core = 6.x
+version = "6.x-0.1-dev"
+package = Lucas Weeks
