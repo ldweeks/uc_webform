@@ -124,23 +124,30 @@ function _webform_edit_uc_product($component) {
   // Most options are stored in the "extra" array, which stores any settings
   // unique to a particular component type.
   $form['extra']['products'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Product Selection'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#weight' => 5,
+  );
+  $form['extra']['products']['product'] = array(
     '#type' => 'select',
     '#title' => t('Products'),
-    '#default_value' => $component['extra']['products'],
-    '#multiple' => TRUE,
-    '#description' => t('Please select your products.'),
-    '#size' => 20,
+    '#default_value' => $component['extra']['product'],
+    '#multiple' => FALSE,
+    '#description' => t('Please select your product.'),
     '#weight' => -3,
     '#required' => TRUE,
     '#options' => $products,
   );
-  $form['extra']['multiple'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Multiple'),
-      '#default_value' => $component['extra']['multiple'],
-      '#description' => t('Check this option if the user should be allowed to choose multiple products.'),
-      '#weight' => -2,
-    );
+  $form['extra']['products']['required_product'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Required'),
+    '#default_value' => $component['extra']['required_product'],
+    '#description' => t('Check this option if the user is required to select the product.'),
+    '#weight' => -2,
+  );
+
   
   return $form;
 }
@@ -158,7 +165,49 @@ function _webform_edit_uc_product($component) {
  */
 function _webform_render_uc_product($component, $value = NULL) {
   
-  foreach($component['extra']['products'] as $key => $value) {
+  $node = node_load($component['extra']['products']['product']);
+  dpm($node, 'Node:');
+  
+  if ($node->attributes) {
+  	
+  	$product_attribute['aid'] = $node->attributes[0]['aid'];
+  	$product_attribute['name'] = $node->attributes[0]['name'];
+  	$product_attribute['label'] = $node->attributes[0]['label'];
+  	
+  	foreach ($node->attributes[0]['options'] as $key => $value) {
+  		$product_attribute['aid'][$key] = $value;
+  	}
+  	
+  	$form_item = array(
+    	'#type' => 'select',
+	    '#title' => t("$product_attribute['label']"),
+    	'#multiple' => FALSE,
+	    '#description' => t('Please select your product.'),
+  	  '#weight' => -3,
+    	'#required' => TRUE,
+    	'#options' => $products,
+  	);
+  	
+  	array('return_value1' => t('Display Value 1'), 'return_value2' => t('Display Value 2'))
+
+  } else {
+  	$form_item = array(
+    	'#type' => 'markup',
+    	'#value' => '<strong>No attributes found</strong></br>',
+  	);
+  }
+  
+    	$form_item = array(
+    	'#type' => 'select',
+	    '#title' => t('Products'),
+  	  '#default_value' => $component['extra']['products']['product'],
+    	'#multiple' => FALSE,
+	    '#description' => t('Please select your product.'),
+  	  '#weight' => -3,
+    	'#required' => TRUE,
+    	'#options' => $products,
+  	);
+  /*foreach($component['extra']['products'] as $key => $value) {
     // I'm using the key here because I set it up originally to be 'nid => ntitle', even though it currently is 'nid => nid'. I'm still not sure why the title never makes it to the database.
     $node = node_load($key);
     
@@ -166,36 +215,42 @@ function _webform_render_uc_product($component, $value = NULL) {
     $attributes = uc_product_get_attributes($node->nid);
     dpm($attributes, "Attributes for $node->nid");
     
-    $products[$node->nid] = $node->title . ", <strong>$" . number_format($node->sell_price, 2) . "</strong>";
-  }
+    if ($attributes) {
+      
+    }
     
-	if ($component['extra']['multiple'] == 0) {
-		$form_item = array(
-			'#type' => 'radios',
-			'#title' => $component['name'],
-			'#weight' => $component['weight'],
-			'#description'   => _webform_filter_descriptions($component['extra']['description']),
-			'#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
-			'#suffix' => '</div>',
-			'#options' => $products,
-		);
-	}
-	elseif ($component['extra']['multiple'] == 1) {
-		$form_item = array(
-			'#type' => 'checkboxes',
-			'#title' => $component['name'],
-			'#weight' => $component['weight'],
-			'#description'   => _webform_filter_descriptions($component['extra']['description']),
-			'#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
-			'#suffix' => '</div>',
-			'#options' => $products,
-		);
-	}
+  }*/
+    
+  /*if ($component['extra']['multiple'] == 0) {
+    $form_item = array(
+      '#type' => 'radios',
+      '#title' => $component['name'],
+      '#weight' => $component['weight'],
+      '#description'   => _webform_filter_descriptions($component['extra']['description']),
+      '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
+      '#suffix' => '</div>',
+      '#options' => $products,
+    );
+  }
+  elseif ($component['extra']['multiple'] == 1) {
+    $form_item = array(
+      '#type' => 'checkboxes',
+      '#title' => $component['name'],
+      '#weight' => $component['weight'],
+      '#description'   => _webform_filter_descriptions($component['extra']['description']),
+      '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
+      '#suffix' => '</div>',
+      '#options' => $products,
+    );
+  }*/
 
   if (isset($value)) {
     $form_item['#default_value'] = $value[0];
   }
-
+  
+  //$stupid = uc_cart_get_contents();
+  //dpm($stupid, 'cart');
+  
   return $form_item;
 }
 
