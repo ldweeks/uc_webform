@@ -138,6 +138,8 @@ function _webform_edit_uc_product($component) {
     '#weight' => -2,
   );
 
+  dpm($products, 'Products: ');
+  
   return $form;
 }
 
@@ -159,8 +161,9 @@ function _webform_render_uc_product($component, $value = NULL) {
 	foreach($component['extra']['products'] as $value) {
     // I'm using the key here because I set it up originally to be 'nid => title', even though it currently is 'nid => nid'. I'm still not sure why the title never makes it to the database.
     $node = node_load($value);
-
-    $product_title = t("$node->title") . ', <div class="webform-component-' . $component['type'] . '-price" id=webform-component-'. $component['form_key'] . '-price">Price: $' . round($node->sell_price, 2) . '</div>';
+    
+    //<div class="webform-component-' . $component['type'] . '-price" id=webform-component-'. $component['form_key'] . '-price">
+    $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
     $products[$node->nid] = t($product_title);
   }
   
