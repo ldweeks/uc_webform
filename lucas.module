@@ -225,9 +225,11 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
   dpm($component, "component");
   dpm($value, "value");
   
-	$products = array();
+  //ddebug_backtrace();
   
-	foreach($component['extra']['products'] as $value) {
+	$products = array();
+
+  foreach($component['extra']['products'] as $value) {
     // I'm using the key here because I set it up originally to be 'nid => title', even though it currently is 'nid => nid'. I'm still not sure why the title never makes it to the database.
     $node = node_load($value);
 
@@ -235,42 +237,40 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     $products[$node->nid] = t($product_title);
   }
   
-  dpm($products, "products");
+  //dpm($products, "products");
   
   if ($component['extra']['multiple_products'] == 0) {
-    $form_item = array(
+    return array(
       '#title' => $component['name'],
       '#weight' => $component['weight'],
-      '#theme' => 'webform_display_select',
+      '#theme' => 'webform_display_uc_product',
       '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
-	    '#post_render' => array('webform_element_wrapper'),
+	    //'#post_render' => array('webform_element_wrapper'),
       '#component' => $component,
       '#format' => $format,
-      '#description'   => _webform_filter_descriptions($component['extra']['description']),
-      '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
-      '#suffix' => '</div>',
-      '#options' => $products,
-      '#value' => 'hello, world',
+      //'#description'   => _webform_filter_descriptions($component['extra']['description']),
+      //'#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
+      //'#suffix' => '</div>',
+      //'#options' => $products,
+      '#value' => $value[1],
     );
   }
   elseif ($component['extra']['multiple_products'] == 1) {
-    $form_item = array(
-      '#title' => $component['name'],
-      '#weight' => $component['weight'],
-      '#theme' => 'webform_display_select',
-      '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
-	    '#post_render' => array('webform_element_wrapper'),
-      '#component' => $component,
-      '#format' => $format,
-      '#description'   => _webform_filter_descriptions($component['extra']['description']),
-      '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
-      '#suffix' => '</div>',
-      '#options' => $products,
-      '#value' => isset($value[0]) ? $value[0] : '',
+    return array(
+      //'#title' => $component['name'],
+      //'#weight' => $component['weight'],
+      //'#theme' => 'webform_display_uc_product',
+      //'#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
+	    //'#post_render' => array('webform_element_wrapper'),
+      //'#component' => $component,
+      //'#format' => $format,
+      //'#description'   => _webform_filter_descriptions($component['extra']['description']),
+      //'#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
+      //'#suffix' => '</div>',
+      //'#options' => $products,
+      //'#value' => $value,
     );
-  }  
-
-  return $form_item;
+  }
   
   /*
       return array(
@@ -283,6 +283,61 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     '#format' => $format,
     '#value' => (array) $value,
   );*/
+}
+
+/**
+ * Format the text output for this component.
+ */
+function theme_webform_display_uc_product($element) {
+  $component = $element['#component'];
+
+  // Convert submitted 'safe' values to un-edited, original form.
+  $options = _webform_select_options($component, TRUE);
+
+  $items = array();
+  if ($component['extra']['multiple']) {
+    foreach ((array) $element['#value'] as $option_value) {
+      if ($option_value !== '') {
+        // Administer provided values.
+        if (isset($options[$option_value])) {
+          $items[] = $element['#format'] == 'html' ? _webform_filter_xss($options[$option_value]) : $options[$option_value];
+        }
+        // User-specified in the "other" field.
+        else {
+          $items[] = $element['#format'] == 'html' ? check_plain($option_value) : $option_value;
+        }
+      }
+    }
+  }
+  else {
+    if (isset($element['#value'][0]) && $element['#value'][0] !== '') {
+      // Administer provided values.
+      if (isset($options[$element['#value'][0]])) {
+        $items[] = $element['#format'] == 'html' ? _webform_filter_xss($options[$element['#value'][0]]) : $options[$element['#value'][0]];
+      }
+      // User-specified in the "other" field.
+      else {
+        $items[] = $element['#format'] == 'html' ? check_plain($element['#value'][0]) : $element['#value'][0];
+      }
+    }
+  }
+
+  if ($element['#format'] == 'html') {
+    $output = count($items) > 1 ? theme('item_list', $items) : (isset($items[0]) ? $items[0] : ' ');
+  }
+  else {
+    if (count($items) > 1) {
+      foreach ($items as $key => $item) {
+        $items[$key] = ' - ' . $item;
+      }
+      $output = implode("\n", $items);
+    }
+    else {
+      $output = isset($items[0]) ? $items[0] : ' ';
+    }
+  }
+
+  return $output;
 }
 
 /**
