@@ -225,58 +225,26 @@ function _webform_render_uc_product($component, $value = NULL) {
  */
 function _webform_display_uc_product($component, $value, $format = 'html') {
   
-  dpm($component, "component");
   dpm($value, "value");
+  dpm($component, "component");
   
   //ddebug_backtrace();
   
 	$products = array();
 
-  foreach($component['extra']['products'] as $value) {
-    // I'm using the key here because I set it up originally to be 'nid => title', even though it currently is 'nid => nid'. I'm still not sure why the title never makes it to the database.
-    $node = node_load($value);
-
-    $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
-    $products[$node->nid] = t($product_title);
+  foreach($value as $product) {
+    if($product != 0) {
+      $node = node_load($product);
+  
+      $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
+      array_push($products, t($product_title));
+    }
   }
   
-  //dpm($products, "products");
+  dpm($products, "products");
+  dpm($format, "Format");
   
-  if ($component['extra']['multiple_products'] == 0) {
-    return array(
-      '#title' => $component['name'],
-      '#weight' => $component['weight'],
-      '#theme' => 'webform_display_uc_product',
-      '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
-	    //'#post_render' => array('webform_element_wrapper'),
-      '#component' => $component,
-      '#format' => $format,
-      //'#description'   => _webform_filter_descriptions($component['extra']['description']),
-      //'#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
-      //'#suffix' => '</div>',
-      //'#options' => $products,
-      '#value' => $value[1],
-    );
-  }
-  elseif ($component['extra']['multiple_products'] == 1) {
-    return array(
-      //'#title' => $component['name'],
-      //'#weight' => $component['weight'],
-      //'#theme' => 'webform_display_uc_product',
-      //'#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
-	    //'#post_render' => array('webform_element_wrapper'),
-      //'#component' => $component,
-      //'#format' => $format,
-      //'#description'   => _webform_filter_descriptions($component['extra']['description']),
-      //'#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
-      //'#suffix' => '</div>',
-      //'#options' => $products,
-      //'#value' => $value,
-    );
-  }
-  
-  /*
-      return array(
+  $element = array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
     '#theme' => 'webform_display_select',
@@ -284,262 +252,9 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
     '#format' => $format,
-    '#value' => (array) $value,
-  );*/
-}
-
-/**
- * Format the text output for this component.
- */
-function theme_webform_display_uc_product($element) {
-  $component = $element['#component'];
-
-  // Convert submitted 'safe' values to un-edited, original form.
-  $options = _webform_select_options($component, TRUE);
-
-  $items = array();
-  if ($component['extra']['multiple']) {
-    foreach ((array) $element['#value'] as $option_value) {
-      if ($option_value !== '') {
-        // Administer provided values.
-        if (isset($options[$option_value])) {
-          $items[] = $element['#format'] == 'html' ? _webform_filter_xss($options[$option_value]) : $options[$option_value];
-        }
-        // User-specified in the "other" field.
-        else {
-          $items[] = $element['#format'] == 'html' ? check_plain($option_value) : $option_value;
-        }
-      }
-    }
-  }
-  else {
-    if (isset($element['#value'][0]) && $element['#value'][0] !== '') {
-      // Administer provided values.
-      if (isset($options[$element['#value'][0]])) {
-        $items[] = $element['#format'] == 'html' ? _webform_filter_xss($options[$element['#value'][0]]) : $options[$element['#value'][0]];
-      }
-      // User-specified in the "other" field.
-      else {
-        $items[] = $element['#format'] == 'html' ? check_plain($element['#value'][0]) : $element['#value'][0];
-      }
-    }
-  }
-
-  if ($element['#format'] == 'html') {
-    $output = count($items) > 1 ? theme('item_list', $items) : (isset($items[0]) ? $items[0] : ' ');
-  }
-  else {
-    if (count($items) > 1) {
-      foreach ($items as $key => $item) {
-        $items[$key] = ' - ' . $item;
-      }
-      $output = implode("\n", $items);
-    }
-    else {
-      $output = isset($items[0]) ? $items[0] : ' ';
-    }
-  }
-
-  return $output;
-}
-
-/**
- * A hook for changing the input values before saving to the database.
- *
- * Note that Webform will save the result of this function directly into the
- * database.
- *
- * @param $component
- *   A Webform component array.
- * @param $value
- *   The POST data associated with the user input.
- * @return
- *   An array of values to be saved into the database. Note that this should be
- *   a numerically keyed array.
- */
-function _webform_submit_uc_product($component, $value) {
-}
-
-/**
- * Delete operation for a component or submission.
- *
- * @param $component
- *   A Webform component array.
- * @param $data
- *   An array of information containing the submission result, directly
- *   correlating to the webform_submitted_data database schema.
- */
-function _webform_delete_uc_product($component, $value) {
-
-}
-
-/**
- * Module specific instance of hook_help().
- *
- * This allows each Webform component to add information into hook_help().
- */
-function _webform_help_component($section) {
-  switch ($section) {
-    case 'admin/settings/webform#product_description':
-      return t('Allows addition of products to a webform.');
-  }
-}
-
-/**
- * Module specific instance of hook_theme().
- *
- * This allows each Webform component to add information into hook_theme().
- *
-function _webform_theme_component() {
-  return array(
-    'webform_grid' => array(
-      'arguments' => array('grid_element' => NULL),
-    ),
-    'webform_mail_grid' => array(
-      'arguments' => array('component' => NULL, 'value' => NULL),
-    ),
+    '#value' => (array) $products,
   );
-}*/
-
-/**
- * Calculate and returns statistics about results for this component.
- * 
- * This takes into account all submissions to this webform. The output of this
- * function will be displayed under the "Results" tab then "Analysis".
- *
- * @param $component
- *   An array of information describing the component, directly correlating to
- *   the webform_component database schema.
- * @param $sids
- *   An optional array of submission IDs (sid). If supplied, the analysis will
- *   be limited to these sids.
- * @param $single
- *   Boolean flag determining if the details about a single component are being
- *   shown. May be used to provided detailed information about a single
- *   component's analysis, such as showing "Other" options within a select list.
- * @return
- *   An array of data rows, each containing a statistic for this component's
- *   submissions.
- *
-function _webform_analysis_component($component, $sids = array(), $single = FALSE) {
-  // Generate the list of options and questions.
-  $options = _webform_component_options($component['extra']['options']);
-  $questions = array_values(_webform_component_options($component['extra']['questions']));
-
-  // Generate a lookup table of results.
-  $placeholders = count($sids) ? array_fill(0, count($sids), "'%s'") : array();
-  $sidfilter = count($sids) ? " AND sid in (".implode(",", $placeholders).")" : "";
-  $query = 'SELECT no, data, count(data) as datacount '.
-    ' FROM {webform_submitted_data} '.
-    ' WHERE nid = %d '.
-    ' AND cid = %d '.
-    " AND data != '' ". $sidfilter .
-    ' GROUP BY no, data';
-  $result = db_query($query, array_merge(array($component['nid'], $component['cid']), $sids));
-  $counts = array();
-  while ($data = db_fetch_object($result)) {
-    $counts[$data->no][$data->data] = $data->datacount;
-  }
-
-  // Create an entire table to be put into the returned row.
-  $rows = array();
-  $header = array('');
-
-  // Add options as a header row.
-  foreach ($options as $option) {
-    $header[] = $option;
-  }
-
-  // Add questions as each row.
-  foreach ($questions as $qkey => $question) {
-    $row = array($question);
-    foreach ($options as $okey => $option) {
-      $row[] = !empty($counts[$qkey][$okey]) ? $counts[$qkey][$okey] : 0;
-    }
-    $rows[] = $row;
-  }
-  $output = theme('table', $header, $rows, array('class' => 'webform-grid'));
-
-  return array(array(array('data' => $output, 'colspan' => 2)));
-}*/
-
-/**
- * Return the result of a component value for display in a table.
- *
- * The output of this function will be displayed under the "Results" tab then
- * "Table".
- *
- * @param $component
- *   A Webform component array.
- * @param $value
- *   An array of information containing the submission result, directly
- *   correlating to the webform_submitted_data database schema.
- * @return
- *   Textual output formatted for human reading.
- */
-function _webform_table_uc_product($component, $value) {
-  $output = '';
-
-  return $output;
+  
+  dpm($element, "Element");
+  return $element;
 }
-
-/**
- * Return the header for this component to be displayed in a CSV file.
- *
- * The output of this function will be displayed under the "Results" tab then
- * "Download".
- *
- * @param $component
- *   A Webform component array.
- * @param $export_options
- *   An array of options that may configure export of this field.
- * @return
- *   An array of data to be displayed in the first three rows of a CSV file, not
- *   including either prefixed or trailing commas.
- *
-function _webform_csv_headers_uc_product($component, $export_options) {
-  $header = array();
-  $header[0] = array('');
-  $header[1] = array($component['name']);
-  $items = _webform_component_options($component['extra']['questions']);
-  $count = 0;
-  foreach ($items as $key => $item) {
-    // Empty column per sub-field in main header.
-    if ($count != 0) {
-      $header[0][] = '';
-      $header[1][] = '';
-    }
-    // The value for this option.
-    $header[2][] = $item;
-    $count++;
-  }
-
-  return $header;
-}*/
-
-/**
- * Format the submitted data of a component for CSV downloading.
- *
- * The output of this function will be displayed under the "Results" tab then
- * "Download".
- *
- * @param $component
- *   A Webform component array.
- * @param $export_options
- *   An array of options that may configure export of this field.
- * @param $value
- *   An array of information containing the submission result, directly
- *   correlating to the webform_submitted_data database schema.
- * @return
- *   An array of items to be added to the CSV file. Each value within the array
- *   will be another column within the file. This function is called once for
- *   every row of data.
- *
-function _webform_csv_data_uc_product($component, $export_options, $value) {
-  $questions = array_keys(_webform_select_options($component['extra']['questions']));
-  $return = array();
-  foreach ($questions as $key => $question) {
-    $return[] = isset($value[$key]) ? $value[$key] : '';
-  }
-  return $return;
-}*/
