@@ -50,10 +50,6 @@ function lucas_form(&$node) {
   }
 
   if ($type->has_body) {
-    // In Drupal 6, we can use node_body_field() to get the body and filter
-    // elements. This replaces the old textarea + filter_form() method of
-    // setting this up. It will also ensure the teaser splitter gets set up
-    // properly.
     $form['body_field'] = node_body_field($node, $type->body_label, $type->min_word_count);
   }
 
@@ -245,33 +241,6 @@ function lucas_webform_component_info() {
   
   return $components;
 }
-
-/**
- * Alter the list of available Webform components.
- *
- * @param $components
- *   A list of existing components as defined by hook_webform_component_info().
- *
- * @see hook_webform_component_info()
- */
-/*function lucas_webform_component_info_alter(&$components) {
-  dpm($components, "Components Before");
-  
-  $components['uc_product'] = array(
-    'label' => t('Ubercart Product'),
-    'description' => t('Add Ubercart Products to your webform.'),
-    'features' => array(
-      // Add content to CSV downloads. Defaults to TRUE.
-      'csv' => TRUE,
-      // Show this field in e-mailed submissions. Defaults to TRUE.
-      'email' => TRUE,
-      // This field may be toggled as required or not. Defaults to TRUE.
-      'required' => TRUE,
-    )
-  );
-  dpm($components, "Components After");
-}*/
-
 
 /**
  * Specify the default properties of a component.
@@ -498,16 +467,23 @@ function lucas_webform_submission_insert($node, $submission) {
   
   $components = $node->webform['components'];  
   $component_ids = array();
-  $hello = "hello!";
-  
+  $data = array();  
+
   foreach ($components as $component) {
     if ($component['type'] == 'uc_product') {
       if (array_key_exists($component['cid'], $submission->data)) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
-          if($product != 0) {
-            /*$registration_key = date('YmdHis') . '-' . preg_replace("/[^a-zA-Z]/", "", $lastname);
-            $data = array('attributes' => array(4 => $registration_key, 3 => $webform_id));
+          if ($product != 0) {
+            $attributes = uc_product_get_attributes($product);
+            foreach ($attributes as $attribute) {
+              if ($attribute->name == 'registration_form_id') {
+                $data['attributes']["$attribute->aid"] = $node->nid;
+              } elseif ($attribute->name == 'registration_key') {
+                $data['attributes']["$attribute->aid"] = 'registration_key_goes_here';
+              }
+            }
+            // TODO: I need to make the quantity a variable here.
             uc_cart_add_item($product, 1, $data); //UC API call*/
           }
         }
