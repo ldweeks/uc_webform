@@ -1,6 +1,59 @@
 <?php
 
 /**
+ * Define callbacks that can be used as select list options.
+ *
+ * @return
+ *   An array of callbacks that can be used for select list options. This array
+ *   should be keyed by the "name" of the pre-defined list. The values should
+ *   be an array with the following additional keys:
+ *     - title: The translated title for this list.
+ *     - options callback: The name of the function that will return the list.
+ *     - file: Optional. The file containing the options callback, relative to
+ *       the module root.
+ */
+function lucas_webform_select_options_info() {
+  $items = array();
+
+  $items['registration_products'] = array(
+    'title' => t('Registration Products'),
+    'options callback' => 'ldw_options_products',
+  );
+
+  return $items;
+}
+
+/**
+ * Option list containing the days of the week.
+ */
+function ldw_options_products() {
+  
+  $products = array();
+  
+  // http://api.ubercart.org/api/function/uc_product_types/2
+  $types = uc_product_types();
+  
+  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
+  
+  while ($row = db_fetch_object($result)) {
+    $products[$row->nid] = t("$row->title");
+  }
+  
+/*  $products = array(
+    'sunday' => t('Sunday'),
+    'monday' => t('Monday'),
+    'tuesday' => t('Tuesday'),
+    'wednesday' => t('Wednesday'),
+    'thursday' => t('Thursday'),
+    'friday' => t('Friday'),
+    'saturday' => t('Saturday'),
+  );*/
+
+  return $products;
+}
+
+
+/**
  * Define components to Webform.
  *
  * @return
@@ -61,12 +114,41 @@ function lucas_webform_component_info() {
       // Show this field in e-mailed submissions. Defaults to TRUE.
       'email' => TRUE,
       // This field may be toggled as required or not. Defaults to TRUE.
-      'required' => FALSE,
+      'required' => TRUE,
     )
   );
 
+  //dpm($components, "Components");
+  
   return $components;
 }
+
+/**
+ * Alter the list of available Webform components.
+ *
+ * @param $components
+ *   A list of existing components as defined by hook_webform_component_info().
+ *
+ * @see hook_webform_component_info()
+ */
+/*function lucas_webform_component_info_alter(&$components) {
+  dpm($components, "Components Before");
+  
+  $components['uc_product'] = array(
+    'label' => t('Ubercart Product'),
+    'description' => t('Add Ubercart Products to your webform.'),
+    'features' => array(
+      // Add content to CSV downloads. Defaults to TRUE.
+      'csv' => TRUE,
+      // Show this field in e-mailed submissions. Defaults to TRUE.
+      'email' => TRUE,
+      // This field may be toggled as required or not. Defaults to TRUE.
+      'required' => TRUE,
+    )
+  );
+  dpm($components, "Components After");
+}*/
+
 
 /**
  * Specify the default properties of a component.
@@ -130,15 +212,13 @@ function _webform_edit_uc_product($component) {
     '#required' => TRUE,
     '#options' => $products,
   );
-  $form['extra']['multiple_products'] = array(
+  $form['extra']['multiple'] = array(
     '#type' => 'checkbox',
     '#title' => t('Multiple'),
-    '#default_value' => $component['extra']['required_product'],
+    '#default_value' => $component['extra']['products'],
     '#description' => t('Check this option if the user is allowed to select multiple products.'),
     '#weight' => -2,
   );
-
-  dpm($products, 'Products: ');
   
   return $form;
 }
@@ -158,16 +238,16 @@ function _webform_render_uc_product($component, $value = NULL) {
 
   $products = array();
   
-	foreach($component['extra']['products'] as $value) {
+	foreach($component['extra']['products'] as $val) {
     // I'm using the key here because I set it up originally to be 'nid => title', even though it currently is 'nid => nid'. I'm still not sure why the title never makes it to the database.
-    $node = node_load($value);
+    $node = node_load($val);
     
     //<div class="webform-component-' . $component['type'] . '-price" id=webform-component-'. $component['form_key'] . '-price">
     $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
     $products[$node->nid] = t($product_title);
   }
   
-  if ($component['extra']['multiple_products'] == 0) {
+  if ($component['extra']['multiple'] == 0) {
     $form_item = array(
       '#type' => 'radios',
       '#title' => $component['name'],
@@ -178,7 +258,7 @@ function _webform_render_uc_product($component, $value = NULL) {
       '#options' => $products,
     );
   }
-  elseif ($component['extra']['multiple_products'] == 1) {
+  elseif ($component['extra']['multiple'] == 1) {
     $form_item = array(
       '#type' => 'checkboxes',
       '#title' => $component['name'],
@@ -191,7 +271,7 @@ function _webform_render_uc_product($component, $value = NULL) {
   }  
   
   if (isset($value)) {
-    $form_item['#default_value'] = $value[0];
+    $form_item['#default_value'] = $value;
   }
     
   return $form_item;
@@ -224,37 +304,85 @@ function _webform_render_uc_product($component, $value = NULL) {
  *   (such as wrapping the text) or as HTML (ensuring consistent output).
  */
 function _webform_display_uc_product($component, $value, $format = 'html') {
-  
-  dpm($value, "value");
-  dpm($component, "component");
-  
-  //ddebug_backtrace();
-  
-	$products = array();
 
-  foreach($value as $product) {
-    if($product != 0) {
-      $node = node_load($product);
+  $products = array();
   
-      $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
-      array_push($products, t($product_title));
+  if (isset($value)) {
+    foreach($value as $product) {
+      if($product != 0) {
+        $node = node_load($product);
+        
+        $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
+        array_push($products, t($product_title));
+      }
     }
   }
   
-  dpm($products, "products");
-  dpm($format, "Format");
-  
-  $element = array(
+  return array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
-    '#theme' => 'webform_display_select',
+    '#theme' => 'webform_display_uc_product',
     '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
     '#format' => $format,
-    '#value' => (array) $products,
+    '#value' => $products,
   );
+}
+
+/**
+ * Module specific instance of hook_theme().
+ *
+ * This allows each Webform component to add information into hook_theme().
+ */
+function _webform_theme_uc_product() {
+  return array(
+    'webform_display_uc_product' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+/**
+ * Format the text output for the uc_product component.
+ */
+function theme_webform_display_uc_product($element) {
   
-  dpm($element, "Element");
-  return $element;
+  // I may need to rethink this in the future.
+  if (isset($element['#value'])) {
+    $output = theme('item_list', $element['#value']);
+  }
+
+  return $output;
+}
+
+/**
+ * Respond to a Webform submission being inserted.
+ *
+ * Note that this hook is called after a submission has already been saved to
+ * the database. If needing to modify the submission prior to insertion, use
+ * hook_webform_submission_presave().
+ *
+ * @param $node
+ *   The Webform node on which this submission was made.
+ * @param $submission
+ *   The Webform submission that was just inserted into the database.
+ */
+function lucas_webform_submission_insert($node, $submission) {
+  
+  $components = $node->webform['components'];  
+  $component_ids = array();
+  
+  foreach ($components as $component) {
+    if ($component['type'] == 'uc_product') {
+      array_push($component_ids, $component['cid']);
+    }
+  }
+  
+  dpm($component_ids, "Component IDs");
+  dpm($node, 'Node');
+  dpm($submission, 'Submission');
+  
+    //$data = array('attributes' => array(4 => $registration_key, 3 => $webform_id));
+		//uc_cart_add_item($adult_thurs_reg, 1, $data); //UC API call
 }
