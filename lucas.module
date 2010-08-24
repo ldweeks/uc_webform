@@ -68,27 +68,40 @@ function lucas_enable() {
   // Here, I add the product class information directly into the database.
   db_query("INSERT INTO {uc_product_classes} (pcid, name, description) VALUES ('%s', '%s', '%s')", 'registration_product', 'Registration Product', 'A registration product allows store owners to sell registrations.');
   
-  db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'registration_key', 'Registration Key', 0, 0, 0, 'A registration key for a registration form submission.');
-  
-  db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'reg_form_id', 'Registration Form ID', 0, 0, 0, 'A registration form ID for a registration form.');
+  uc_product_add_default_image_field('registration_product');
 
+  // These next two if statements are here to prevent the module from repeatedly 
+  // adding these attributes when the module is enabled/disabled.
+  $exists = db_result(db_query("SELECT name FROM {uc_attributes} WHERE name = '%s'", 'registration_key'));
+  if (!($exists)) {
+    db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'registration_key', 'Registration Key', 0, 0, 0, 'A registration key for a registration form submission.');
+  }
+
+  $exists = db_result(db_query("SELECT name FROM {uc_attributes} WHERE name = '%s'", 'registration_form_id'));
+  if (!($exists)) {
+    db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'registration_form_id', 'Registration Form ID', 0, 0, 0, 'A registration form ID for a registration form.');
+  }
   
   // These two functions see the newly added product class, and then build up a product node-type for that class.
   node_types_rebuild();
   menu_rebuild();
-  
-  /*if ($is_new && module_exists('imagefield')) {
-    uc_registration_add_default_image_field($pcid);
-  }*/
 }
 
 /**
 * Implementation of hook_disable().
+* When the module is disabled, the registration product content type becomes a "regular" content type.
 */
 function lucas_disable() {
   
-  db_query("DELETE FROM {uc_product_classes} WHERE pcid = %s", 'registration_product');
-  
+  // I took most of this code from uc_product_class_delete_confirm_submit in uc_product.admin.inc
+  $type = node_get_types('type', 'registration_product');
+  $type->module = 'node';
+  $type->custom = 1;
+  node_type_save($type);
+
+  db_query("DELETE FROM {uc_product_classes} WHERE pcid = '%s'", 'registration_product');
+  module_invoke_all('product_class', 'registration_product', 'delete');
+  uc_product_node_info(TRUE);
   node_types_rebuild();
   menu_rebuild();
   
