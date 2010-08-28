@@ -293,16 +293,6 @@ function _webform_defaults_uc_product() {
 /**
  * Generate the form for editing a component.
  *
- * Create a set of form elements to be displayed on the form for editing this
- * component. Use care naming the form items, as this correlates directly to the
- * database schema. The component "Name" and "Description" fields are added to
- * every component type and are not necessary to specify here (although they
- * may be overridden if desired).
- *
- * @param $component
- *   A Webform component array.
- * @return
- *   An array of form items to be displayed on the edit component page
  */
 function _webform_edit_uc_product($component) {
   $form = array();
@@ -310,7 +300,7 @@ function _webform_edit_uc_product($component) {
   // Disabling the description if not wanted.
   $form['description'] = array();
   
-  // http://api.ubercart.org/api/function/uc_product_types/2
+  // http://api.lullabot.com/uc_product_types
   $types = uc_product_types();
   
   $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
