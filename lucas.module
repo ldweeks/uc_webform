@@ -115,8 +115,20 @@ function lucas_product_types() {
   return array('registration_product');
 }
 
+/**
+* Implementation of hook_add_to_cart().
+* - I DON'T THINK THAT I ACTUALLY NEED THIS RIGHT NOW.
+function lucas_add_to_cart($nid, $qty, $data) {
+  
+  if($data['attributes']) {
+  }
+  dpm(node_load($nid), "Node");
+  dpm($qty, "Quantity");
+  dpm($data, "Data");
+}*/
+
 /**********************************
- * Webform API Functions
+ * Webform Hooks
  **********************************/
 
 /**
@@ -158,16 +170,6 @@ function ldw_options_products() {
     $products[$row->nid] = t("$row->title");
   }
   
-/*  $products = array(
-    'sunday' => t('Sunday'),
-    'monday' => t('Monday'),
-    'tuesday' => t('Tuesday'),
-    'wednesday' => t('Wednesday'),
-    'thursday' => t('Thursday'),
-    'friday' => t('Friday'),
-    'saturday' => t('Saturday'),
-  );*/
-
   return $products;
 }
 
@@ -236,11 +238,78 @@ function lucas_webform_component_info() {
       'required' => TRUE,
     )
   );
-
-  //dpm($components, "Components");
   
   return $components;
 }
+
+/**
+ * Respond to a Webform submission being inserted.
+ *
+ * Note that this hook is called after a submission has already been saved to
+ * the database. If needing to modify the submission prior to insertion, use
+ * hook_webform_submission_presave().
+ *
+ * @param $node
+ *   The Webform node on which this submission was made.
+ * @param $submission
+ *   The Webform submission that was just inserted into the database.
+ */
+function lucas_webform_submission_insert($node, $submission) {
+  
+  $components = $node->webform['components'];  
+  $component_ids = array();
+  $data = array();  
+
+  foreach ($components as $component) {
+    if ($component['type'] == 'uc_product') {
+      if (array_key_exists($component['cid'], $submission->data)) {
+        $key = $component['cid'];
+        foreach ($submission->data[$key]['value'] as $product) {
+          if ($product != 0) {
+            $attributes = uc_product_get_attributes($product);
+            foreach ($attributes as $attribute) {
+              if ($attribute->name == 'registration_form_id') {
+                $data['attributes']["$attribute->aid"] = $node->nid;
+              } elseif ($attribute->name == 'registration_key') {
+                $data['attributes']["$attribute->aid"] = 'registration_key_goes_here';
+              }
+            }
+            // TODO: I need to make the quantity a variable here.
+            uc_cart_add_item($product, 1, $data); //UC API call
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Respond to a Webform component being inserted into the database.
+ * A registration system requires that there exists a hidden "status" field.
+ */
+function lucas_webform_component_insert($component) {
+
+  $reg_status = false;
+
+  if ($component['type'] == 'uc_product') {
+    $node = node_load($component['nid']);
+    foreach ($node->webform['components'] as $curr_component) {
+      if (($curr_component['type'] == 'hidden') && ($curr_component['form_key'] == 'registration_status')) { 
+        $reg_status = true;
+        break;
+      }
+    }
+    
+    if (!$reg_status) {
+      drupal_set_message('For registration to work correctly, you must add a hidden component with a key of "registration_status" with a default value of "Did not complete checkout".');
+    }
+  }
+  // TODO: I should probably automate this function a bit more in the future.
+}
+
+/**********************************
+ * Webform API Functions
+ **********************************/
 
 /**
  * Specify the default properties of a component.
@@ -426,14 +495,14 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
  * Module specific instance of hook_theme().
  *
  * This allows each Webform component to add information into hook_theme().
- */
+ *
 function _webform_theme_uc_product() {
   return array(
     'webform_display_uc_product' => array(
       'arguments' => array('element' => NULL),
     ),
   );
-}
+}*/
 
 /**
  * Format the text output for the uc_product component.
@@ -449,45 +518,22 @@ function theme_webform_display_uc_product($element) {
 }
 
 /**
- * Respond to a Webform submission being inserted.
+ * Return the result of a component value for display in a table.
  *
- * Note that this hook is called after a submission has already been saved to
- * the database. If needing to modify the submission prior to insertion, use
- * hook_webform_submission_presave().
+ * The output of this function will be displayed under the "Results" tab then
+ * "Table".
  *
- * @param $node
- *   The Webform node on which this submission was made.
- * @param $submission
- *   The Webform submission that was just inserted into the database.
+ * @param $component
+ *   A Webform component array.
+ * @param $value
+ *   An array of information containing the submission result, directly
+ *   correlating to the webform_submitted_data database schema.
+ * @return
+ *   Textual output formatted for human reading.
  */
-function lucas_webform_submission_insert($node, $submission) {
+function _webform_table_uc_product($component, $value) {
   
-  dpm($node, 'Node');
-  dpm($submission, 'Submission');
-  
-  $components = $node->webform['components'];  
-  $component_ids = array();
-  $data = array();  
-
-  foreach ($components as $component) {
-    if ($component['type'] == 'uc_product') {
-      if (array_key_exists($component['cid'], $submission->data)) {
-        $key = $component['cid'];
-        foreach ($submission->data[$key]['value'] as $product) {
-          if ($product != 0) {
-            $attributes = uc_product_get_attributes($product);
-            foreach ($attributes as $attribute) {
-              if ($attribute->name == 'registration_form_id') {
-                $data['attributes']["$attribute->aid"] = $node->nid;
-              } elseif ($attribute->name == 'registration_key') {
-                $data['attributes']["$attribute->aid"] = 'registration_key_goes_here';
-              }
-            }
-            // TODO: I need to make the quantity a variable here.
-            uc_cart_add_item($product, 1, $data); //UC API call*/
-          }
-        }
-      }
-    }
-  }
+  dpm($component, "Component");
+  dpm($value, "Value");
+  return 'hello!';
 }
