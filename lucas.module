@@ -173,54 +173,13 @@ function ldw_options_products() {
   return $products;
 }
 
-
 /**
  * Define components to Webform.
  *
  * @return
- *   An array of components, keyed by machine name. Required properties are
- *   "label" and "description". The "features" array defines which capabilities
- *   the component has, such as being displayed in e-mails or csv downloads.
- *   A component like "markup" for example would not show in these locations.
- *   The possible features of a component include:
- *
- *     - csv
- *     - email
- *     - email_address
- *     - email_name
- *     - required
- *     - conditional
- *     - spam_analysis
- *     - group
- *
- *   Note that these features do not indicate the default state, but determine
- *   if the component can have this property at all. Setting "required" to TRUE
- *   does not mean that a field will always be required, but instead give the
- *   option to the administrator to choose the requiredness. See the example
- *   implementation for details on how these features may be set.
- *
- *   An optional "file" may be specified to be loaded when the component is
- *   needed. A set of callbacks will be established based on the name of the
- *   component. All components follow the pattern:
- *
- *   _webform_[callback]_[component]
- *
- *   Where [component] is the name of the key of the component and [callback] is
- *   any of the following:
- *
- *     - defaults
- *     - theme
- *     - edit
- *     - delete
- *     - render
- *     - display
- *     - analysis
- *     - table
- *     - csv_headers
- *     - csv_data
- *
- * See the sample component implementation for details on each one of these
- * callbacks.
+ *   An array of components, keyed by machine name.
+ * 
+ * Form more information: http://drupal.org/node/886014
  */
  
 function lucas_webform_component_info() {
@@ -286,6 +245,7 @@ function lucas_webform_submission_insert($node, $submission) {
 /**
  * Respond to a Webform component being inserted into the database.
  * A registration system requires that there exists a hidden "status" field.
+ * TO DO: Become less dependent on the user.
  */
 function lucas_webform_component_insert($component) {
 
@@ -304,7 +264,6 @@ function lucas_webform_component_insert($component) {
       drupal_set_message('For registration to work correctly, you must add a hidden component with a key of "registration_status" with a default value of "Did not complete checkout".');
     }
   }
-  // TODO: I should probably automate this function a bit more in the future.
 }
 
 /**********************************
@@ -387,13 +346,6 @@ function _webform_edit_uc_product($component) {
 /**
  * Render a Webform component to be part of a form.
  *
- * @param $component
- *   A Webform component array.
- * @param $value
- *   If editing an existing submission or resuming a draft, this will contain
- *   an array of values to be shown instead of the default in the component
- *   configuration. This value will always be an array, keyed numerically for
- *   each value saved in this field.
  */
 function _webform_render_uc_product($component, $value = NULL) {
 
@@ -441,28 +393,6 @@ function _webform_render_uc_product($component, $value = NULL) {
 /**
  * Display the result of a submission for a component.
  * 
- * The output of this function will be displayed under the "Results" tab then
- * "Submissions". This should output the saved data in some reasonable manner.
- *
- * @param $component
- *   A Webform component array.
- * @param $value
- *   An array of information containing the submission result, directly
- *   correlating to the webform_submitted_data database table schema.
- * @param $format
- *   Either 'html' or 'text'. Defines the format that the content should be
- *   returned as. Make sure that returned content is run through check_plain()
- *   or other filtering functions when returning HTML.
- * @return
- *   A renderable element containing at the very least these properties:
- *    - #title
- *    - #weight
- *    - #component
- *    - #format
- *    - #value
- *   Webform also uses #theme_wrappers to output the end result to the user,
- *   which will properly format the label and content for use within an e-mail
- *   (such as wrapping the text) or as HTML (ensuring consistent output).
  */
 function _webform_display_uc_product($component, $value, $format = 'html') {
 
@@ -490,19 +420,6 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     '#value' => $products,
   );
 }
-
-/**
- * Module specific instance of hook_theme().
- *
- * This allows each Webform component to add information into hook_theme().
- *
-function _webform_theme_uc_product() {
-  return array(
-    'webform_display_uc_product' => array(
-      'arguments' => array('element' => NULL),
-    ),
-  );
-}*/
 
 /**
  * Format the text output for the uc_product component.
