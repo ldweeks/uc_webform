@@ -392,7 +392,7 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     foreach($value as $product) {
       if($product != 0) {
         $node = node_load($product);
-        
+        dpm($node, "Node");
         $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
         array_push($products, t($product_title));
       }
@@ -440,7 +440,15 @@ function theme_webform_display_uc_product($element) {
  */
 function _webform_table_uc_product($component, $value) {
   
-  dpm($component, "Component");
-  dpm($value, "Value");
-  return 'hello!';
+  $results = "";
+
+  if (isset($value)) {
+    foreach($value as $product) {
+      $node = node_load($product);
+      $results .= "$node->model<br>";
+    }
+  }
+ 
+  return $results;
 }
+
