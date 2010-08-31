@@ -230,7 +230,7 @@ function lucas_webform_submission_insert($node, $submission) {
               if ($attribute->name == 'registration_form_id') {
                 $data['attributes']["$attribute->aid"] = $node->nid;
               } elseif ($attribute->name == 'registration_key') {
-                $data['attributes']["$attribute->aid"] = 'registration_key_goes_here';
+                $data['attributes']["$attribute->aid"] = $submission->sid;
               }
             }
             // TODO: I need to make the quantity a variable here.
