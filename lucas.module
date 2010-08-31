@@ -443,17 +443,6 @@ function _webform_table_uc_product($component, $value) {
 
 /**
  * Return the header for this component to be displayed in a CSV file.
- *
- * The output of this function will be displayed under the "Results" tab then
- * "Download".
- *
- * @param $component
- *   A Webform component array.
- * @param $export_options
- *   An array of options that may configure export of this field.
- * @return
- *   An array of data to be displayed in the first three rows of a CSV file, not
- *   including either prefixed or trailing commas.
  */
 function _webform_csv_headers_uc_product($component, $export_options) {
   $headers = array(
@@ -462,42 +451,65 @@ function _webform_csv_headers_uc_product($component, $export_options) {
     2 => array(),
   );
 
+  $options = ldw_uc_product_options($component);
+
   if ($component['extra']['multiple'] && $export_options['select_format'] == 'separate') {
     $headers[0][] = '';
     $headers[1][] = $component['name'];
+
+    foreach ($options as $key => $value) {      
+      $headers[2][] = $value;
+    }
   }
   else {
     $headers[0][] = '';
     $headers[1][] = '';
     $headers[2][] = $component['name'];
   }
-
   return $headers;
 }
 
 /**
  * Format the submitted data of a component for CSV downloading.
- *
- * The output of this function will be displayed under the "Results" tab then
- * "Download".
- *
- * @param $component
- *   A Webform component array.
- * @param $export_options
- *   An array of options that may configure export of this field.
- * @param $value
- *   An array of information containing the submission result, directly
- *   correlating to the webform_submitted_data database schema.
- * @return
- *   An array of items to be added to the CSV file. Each value within the array
- *   will be another column within the file. This function is called once for
- *   every row of data.
- *
+ */
 function _webform_csv_data_uc_product($component, $export_options, $value) {
-  $questions = array_keys(_webform_select_options($component['extra']['questions']));
-  $return = array();
-  foreach ($questions as $key => $question) {
-    $return[] = isset($value[$key]) ? $value[$key] : '';
+
+  $options = ldw_uc_product_options($component);
+  $data = array();
+
+  if ($component['extra']['multiple']) {
+    foreach ($options as $key => $item) {
+      $index = array_search($key, (array) $value);
+      if ($index !== FALSE) {
+        $data[] = ($export_options['select_format'] == 'separate') ? 'X' : $key;
+        unset($value[$index]);
+      }
+      elseif ($export_options['select_format'] == 'separate') {
+        $data[] = '';
+      }
+    }
   }
-  return $return;
-}*/
+  else {
+    $data = isset($options[$value[0]]) ? $options[$value[0]] : $value[0];
+  }
+
+  if ($component['extra']['multiple'] && $export_options['select_format'] == 'compact') {
+    $data = implode(',', (array) $data);
+  }
+
+  return $data;
+}
+
+function ldw_uc_product_options($component) {
+
+  $options = array();
+  $count = 0;
+
+  foreach ($component['extra']['products'] as $product) {      
+    $node = node_load($product);
+    $options["$node->nid"] = "$node->model";
+    $count++;
+  }
+
+  return $options;
+}
