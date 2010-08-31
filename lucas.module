@@ -425,6 +425,55 @@ function theme_webform_display_uc_product($element) {
 }
 
 /**
+ * Calculate and returns statistics about results for this component.
+ */
+function _webform_analysis_uc_product($component, $sids = array(), $single = FALSE) {
+
+  $options = ldw_uc_product_options($component);
+  $show_other_results = $single;
+
+  $sid_placeholders = count($sids) ? array_fill(0, count($sids), "'%s'") : array();
+  $sid_filter = count($sids) ? " AND sid IN (" . implode(",", $sid_placeholders) . ")" : "";
+
+  $option_operator = $show_other_results ? 'NOT IN' : 'IN';
+  $placeholders = count($options) ? array_fill(0, count($options), "'%s'") : array();
+  $query = 'SELECT data, count(data) as datacount ' .
+    ' FROM {webform_submitted_data} ' .
+    ' WHERE nid = %d ' .
+    ' AND cid = %d ' .
+    " AND data != ''" . $sid_filter .
+    ($placeholders ? ' AND data ' . $option_operator . ' (' . implode(',', $placeholders) . ')' : '') .
+    ' GROUP BY data ';
+
+  $count_query = 'SELECT count(*) as datacount ' .
+    ' FROM {webform_submitted_data} ' .
+    ' WHERE nid = %d ' .
+    ' AND cid = %d ' .
+    " AND data != ''" . $sid_filter;
+
+  $result = db_query($query, array_merge(array($component['nid'], $component['cid']), $sids, array_keys($options)));
+  $rows = array();
+  $normal_count = 0;
+  while ($data = db_fetch_array($result)) {
+    $display_option = $single ? $data['data'] : $options[$data['data']];
+    $rows[$data['data']] = array(_webform_filter_xss($display_option), $data['datacount']);
+    $normal_count += $data['datacount'];
+  }
+
+  if (!$show_other_results) {
+    // Order the results according to the normal options array.
+    $ordered_rows = array();
+    foreach (array_intersect_key($options, $rows) as $key => $label) {
+      $ordered_rows[] = $rows[$key];
+    }
+
+    $rows = $ordered_rows;
+  }
+
+  return $rows;
+}
+
+/**
  * Return the result of a component value for display in a table.
  */
 function _webform_table_uc_product($component, $value) {
