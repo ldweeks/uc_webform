@@ -116,16 +116,66 @@ function lucas_product_types() {
 }
 
 /**
-* Implementation of hook_add_to_cart().
-* - I DON'T THINK THAT I ACTUALLY NEED THIS RIGHT NOW.
-function lucas_add_to_cart($nid, $qty, $data) {
-  
-  if($data['attributes']) {
+* Implementation of hook_order().
+*/
+function lucas_order($op, &$arg1, $arg2) {
+  switch ($op) {
+/*    case 'new':
+      drupal_set_message("New");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;
+    case 'can_update':
+      drupal_set_message("Can Update");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;*/
+    case 'update':
+      foreach ($arg1->products as $product) {
+        $sid = $product->data['attributes']['Registration Key']['0'];
+        $webform_nid = $product->data['attributes']['Registration Form ID']['0'];
+
+        if (isset($sid) && isset($webform_nid)) {
+          $updated_status = strtoupper($arg2) . ' - Order #' . $arg1->order_id;
+
+          $cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'registration_status'", $webform_nid));
+
+          $query_result = db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $updated_status, $webform_nid, $sid, $cid);          
+        }
+      }
+      break;
+/*    case 'can_delete':
+      drupal_set_message("Can Delete");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;
+    case 'delete':
+      drupal_set_message("Delete");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;
+    case 'total':
+      drupal_set_message("Total");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;
+    case 'save':
+      drupal_set_message("Save");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;
+    case 'load':
+      drupal_set_message("Load");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;
+    case 'submit':
+      drupal_set_message("Submit");
+      dpm($arg1, "Arg 1");
+      dpm($arg2, "Arg 2");
+      break;*/
   }
-  dpm(node_load($nid), "Node");
-  dpm($qty, "Quantity");
-  dpm($data, "Data");
-}*/
+}
 
 /**********************************
  * Webform Hooks
@@ -133,15 +183,6 @@ function lucas_add_to_cart($nid, $qty, $data) {
 
 /**
  * Define callbacks that can be used as select list options.
- *
- * @return
- *   An array of callbacks that can be used for select list options. This array
- *   should be keyed by the "name" of the pre-defined list. The values should
- *   be an array with the following additional keys:
- *     - title: The translated title for this list.
- *     - options callback: The name of the function that will return the list.
- *     - file: Optional. The file containing the options callback, relative to
- *       the module root.
  */
 function lucas_webform_select_options_info() {
   $items = array();
