@@ -256,9 +256,17 @@ function lucas_webform_component_info() {
  */
 function lucas_webform_submission_insert($node, $submission) {
   
+  lucas_remove_previous_submissions($submission->sid);
+
   $components = $node->webform['components'];  
+
+  $cart_items = uc_cart_get_contents();
+  dpm($cart_items, "Cart Items");
+  dpm($node, "Node");
+  dpm($components, "Components");
+  dpm($submission, "Submission");
   $component_ids = array();
-  $data = array();  
+  $data = array();
 
   foreach ($components as $component) {
     if ($component['type'] == 'uc_product') {
@@ -274,11 +282,24 @@ function lucas_webform_submission_insert($node, $submission) {
                 $data['attributes']["$attribute->aid"] = $submission->sid;
               }
             }
-            // TODO: I need to make the quantity a variable here.
-            uc_cart_add_item($product, 1, $data); //UC API call
+            uc_cart_add_item($product, 1, $data);
           }
         }
       }
+    }
+  }
+}
+
+function lucas_remove_previous_submissions($sid) {
+
+  $cart_items = uc_cart_get_contents();
+  
+  $reg_key_aid = db_result(db_query("SELECT aid FROM {uc_attributes} WHERE name = 'registration_key'"));
+  $reg_form_aid = db_result(db_query("SELECT aid FROM {uc_attributes} WHERE name = 'registration_form'"));
+
+  foreach($cart_items as $item) {
+    if (isset($item->data['attributes'][$reg_key_aid]) && ($item->data['attributes'][$reg_key_aid] != $sid)) {
+      uc_cart_remove_item($item->nid, $item->cart_id, $item->data);
     }
   }
 }
@@ -302,7 +323,7 @@ function lucas_webform_component_insert($component) {
     }
     
     if (!$reg_status) {
-      drupal_set_message('For registration to work correctly, you must add a hidden component with a key of "registration_status" with a default value of "Did not complete checkout".');
+      drupal_set_message('For registration to work correctly, you must add a hidden component with a key of "registration_status" with a default value of "Did not complete checkout".', 'warning', true);
     }
   }
 }
