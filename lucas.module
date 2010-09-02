@@ -131,9 +131,12 @@ function lucas_order($op, &$arg1, $arg2) {
       dpm($arg2, "Arg 2");
       break;*/
     case 'update':
+      $cart_id = uc_cart_get_id();
       foreach ($arg1->products as $product) {
-        $sid = $product->data['attributes']['Registration Key']['0'];
-        $webform_nid = $product->data['attributes']['Registration Form ID']['0'];
+        $result = db_fetch_array(db_query("SELECT * FROM {lucas} WHERE cart_id = %d AND product_nid = %d", $cart_id, $product->nid));
+  
+        $sid = $result['sid'];
+        $webform_nid = $result['webform_nid'];
 
         if (isset($sid) && isset($webform_nid)) {
           $updated_status = strtoupper($arg2) . ' - Order #' . $arg1->order_id;
@@ -196,7 +199,7 @@ function lucas_webform_select_options_info() {
 }
 
 /**
- * Option list containing the days of the week.
+ * Option list containing products.
  */
 function ldw_options_products() {
   
@@ -248,23 +251,28 @@ function lucas_webform_component_info() {
  * Note that this hook is called after a submission has already been saved to
  * the database. If needing to modify the submission prior to insertion, use
  * hook_webform_submission_presave().
- *
- * @param $node
- *   The Webform node on which this submission was made.
- * @param $submission
- *   The Webform submission that was just inserted into the database.
  */
 function lucas_webform_submission_insert($node, $submission) {
   
-  lucas_remove_previous_submissions($submission->sid);
+  $cart_id = uc_cart_get_id();
 
-  $components = $node->webform['components'];  
-
+  // Remove items from previous webform submissions from the cart
   $cart_items = uc_cart_get_contents();
-  dpm($cart_items, "Cart Items");
-  dpm($node, "Node");
-  dpm($components, "Components");
-  dpm($submission, "Submission");
+  $results = db_query("SELECT * FROM {lucas} WHERE cart_id = '%d'", $cart_id);
+
+  while ($result = db_fetch_array($results)) {
+    foreach ($cart_items as $cart_item) {
+      if($result['sid'] != $submission->sid) {
+        db_query("DELETE FROM {lucas} WHERE sid = %d AND cart_id = %d", $result['sid'], $cart_id);
+        if($result['product_nid'] == $cart_item->nid) {
+          uc_cart_remove_item($result['product_nid'], $cart_id, $cart_item->data);
+        }
+      }
+    }
+  }
+
+  // Add new items to the cart
+  $components = $node->webform['components'];
   $component_ids = array();
   $data = array();
 
@@ -274,33 +282,11 @@ function lucas_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            $attributes = uc_product_get_attributes($product);
-            foreach ($attributes as $attribute) {
-              if ($attribute->name == 'registration_form_id') {
-                $data['attributes']["$attribute->aid"] = $node->nid;
-              } elseif ($attribute->name == 'registration_key') {
-                $data['attributes']["$attribute->aid"] = $submission->sid;
-              }
-            }
-            uc_cart_add_item($product, 1, $data);
-            // Add the $product, $submission->sid, and $node->webform['nid']
+            db_query("INSERT INTO {lucas} (webform_nid, product_nid, sid, cart_id) VALUES (%d, %d, %d, %d)", $node->nid, $product, $submission->sid, $cart_id);
+            uc_cart_add_item($product, 1);
           }
         }
       }
-    }
-  }
-}
-
-function lucas_remove_previous_submissions($sid) {
-
-  $cart_items = uc_cart_get_contents();
-  
-  $reg_key_aid = db_result(db_query("SELECT aid FROM {uc_attributes} WHERE name = 'registration_key'"));
-  $reg_form_aid = db_result(db_query("SELECT aid FROM {uc_attributes} WHERE name = 'registration_form'"));
-
-  foreach($cart_items as $item) {
-    if (isset($item->data['attributes'][$reg_key_aid]) && ($item->data['attributes'][$reg_key_aid] != $sid)) {
-      uc_cart_remove_item($item->nid, $item->cart_id, $item->data);
     }
   }
 }
