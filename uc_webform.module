@@ -400,37 +400,43 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     }
   }
 
-  $return = array(
+  return array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
-    '#theme' => theme('item_list', $value),
+    '#theme' => 'webform_display_uc_product',
     '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
     '#format' => $format,
     '#value' => $products,
   );
+}
 
-  dpm($products, "Products");
-  dpm($component, "Component");
-  dpm($value, "Value");
-  dpm($return, "Return");
 
-  return $return;
+/**
+ * Module specific instance of hook_theme().
+ *
+ * This allows each Webform component to add information into hook_theme().
+ */
+function _webform_theme_uc_product() {
+  return array(
+    'webform_display_uc_product' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
 }
 
 /**
  * Format the text output for the uc_product component.
  */
-/*function theme_webform_display_uc_product($element) {
-  drupal_set_message("Hello!");
-  // I may need to rethink this in the future.
+function theme_webform_display_uc_product($element) {
+
   if (isset($element['#value'])) {
-    $output = theme('item_list', $element['#value']);
+    $output = (count($element['#value']) > 1) ? theme('item_list', $element['#value']) : $element['#value'][0];
   }
 
   return $output;
-}*/
+}
 
 /**
  * Calculate and returns statistics about results for this component.
