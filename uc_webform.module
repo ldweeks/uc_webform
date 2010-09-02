@@ -7,14 +7,14 @@
 /**
 * Implementation of hook_perm().
 */
-function lucas_perm() {
+function uc_webform_perm() {
   return array('create registration_product', 'edit own registration_product');
 } 
 
 /**
 * Implementation of hook_access().
 */
-function lucas_access($op, $node, $account) {
+function uc_webform_access($op, $node, $account) {
 
   if ($op == 'create') {
     // Only users with permission to do so may create this node type.
@@ -33,7 +33,7 @@ function lucas_access($op, $node, $account) {
 /**
 * Implementation of hook_form().
 */
-function lucas_form(&$node) {
+function uc_webform_form(&$node) {
   // The site admin can decide if this node type has a title and body, and how
   // the fields should be labeled. We need to load these settings so we can
   // build the node form correctly.
@@ -59,26 +59,12 @@ function lucas_form(&$node) {
 /**
 * Implementation of hook_enable().
 */
-function lucas_enable() {
+function uc_webform_enable() {
 
   // Here, I add the product class information directly into the database.
   db_query("INSERT INTO {uc_product_classes} (pcid, name, description) VALUES ('%s', '%s', '%s')", 'registration_product', 'Registration Product', 'A registration product allows store owners to sell registrations.');
   
   uc_product_add_default_image_field('registration_product');
-
-  /* We no longer need these product attributes, since we have a separate table to keep track of this.
-  // These next two if statements are here to prevent the module from repeatedly 
-  // adding these attributes when the module is enabled/disabled.
-  $exists = db_result(db_query("SELECT name FROM {uc_attributes} WHERE name = '%s'", 'registration_key'));
-  if (!($exists)) {
-    db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'registration_key', 'Registration Key', 0, 0, 0, 'A registration key for a registration form submission.');
-  }
-
-  $exists = db_result(db_query("SELECT name FROM {uc_attributes} WHERE name = '%s'", 'registration_form_id'));
-  if (!($exists)) {
-    db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'registration_form_id', 'Registration Form ID', 0, 0, 0, 'A registration form ID for a registration form.');
-  }
-  */  
 
   // These two functions see the newly added product class, and then build up a product node-type for that class.
   node_types_rebuild();
@@ -88,7 +74,7 @@ function lucas_enable() {
 /**
 * Implementation of hook_disable().
 */
-function lucas_disable() {
+function uc_webform_disable() {
   
   // I took most of this code from uc_product_class_delete_confirm_submit in uc_product.admin.inc
   $type = node_get_types('type', 'registration_product');
@@ -108,9 +94,9 @@ function lucas_disable() {
 /**
 * Implementation of hook_cron().
 */
-function lucas_cron() {
+function uc_webform_cron() {
   $yesterday = time() - 85400;
-  db_query("DELETE FROM {lucas} WHERE added < '%d'", $yesterday);
+  db_query("DELETE FROM {uc_webform} WHERE added < '%d'", $yesterday);
 }
 
 /**********************************
@@ -120,14 +106,14 @@ function lucas_cron() {
 /**
 * Implementation of hook_product_types().
 */
-function lucas_product_types() {
+function uc_webform_product_types() {
   return array('registration_product');
 }
 
 /**
 * Implementation of hook_order().
 */
-function lucas_order($op, &$arg1, $arg2) {
+function uc_webform_order($op, &$arg1, $arg2) {
   switch ($op) {
 /*    case 'new':
       drupal_set_message("New");
@@ -142,7 +128,7 @@ function lucas_order($op, &$arg1, $arg2) {
     case 'update':
       $cart_id = uc_cart_get_id();
       foreach ($arg1->products as $product) {
-        $result = db_fetch_array(db_query("SELECT * FROM {lucas} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid));
+        $result = db_fetch_array(db_query("SELECT * FROM {uc_webform} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid));
   
         $sid = $result['sid'];
         $webform_nid = $result['webform_nid'];
@@ -196,7 +182,7 @@ function lucas_order($op, &$arg1, $arg2) {
 /**
  * Define callbacks that can be used as select list options.
  */
-function lucas_webform_select_options_info() {
+function uc_webfom_webform_select_options_info() {
   $items = array();
 
   $items['registration_products'] = array(
@@ -235,7 +221,7 @@ function ldw_options_products() {
  * Form more information: http://drupal.org/node/886014
  */
  
-function lucas_webform_component_info() {
+function uc_webform_webform_component_info() {
   $components = array();
 
   $components['uc_product'] = array(
@@ -261,18 +247,18 @@ function lucas_webform_component_info() {
  * the database. If needing to modify the submission prior to insertion, use
  * hook_webform_submission_presave().
  */
-function lucas_webform_submission_insert($node, $submission) {
+function uc_webform_webform_submission_insert($node, $submission) {
   
   $cart_id = uc_cart_get_id();
 
   // Remove items from previous webform submissions from the cart
   $cart_items = uc_cart_get_contents();
-  $results = db_query("SELECT * FROM {lucas} WHERE cart_id = '%s'", $cart_id);
+  $results = db_query("SELECT * FROM {uc_webform} WHERE cart_id = '%s'", $cart_id);
 
   while ($result = db_fetch_array($results)) {
     foreach ($cart_items as $cart_item) {
       if($result['sid'] != $submission->sid) {
-        db_query("DELETE FROM {lucas} WHERE sid = %d AND cart_id = '%s'", $result['sid'], $cart_id);
+        db_query("DELETE FROM {uc_webform} WHERE sid = %d AND cart_id = '%s'", $result['sid'], $cart_id);
         if($result['product_nid'] == $cart_item->nid) {
           uc_cart_remove_item($result['product_nid'], $cart_id, $cart_item->data);
         }
@@ -291,7 +277,7 @@ function lucas_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            db_query("INSERT INTO {lucas} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
+            db_query("INSERT INTO {uc_webform} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
             uc_cart_add_item($product, 1);
           }
         }
@@ -305,7 +291,7 @@ function lucas_webform_submission_insert($node, $submission) {
  * A registration system requires that there exists a hidden "status" field.
  * TO DO: Become less dependent on the user.
  */
-function lucas_webform_component_insert($component) {
+function uc_webform_webform_component_insert($component) {
 
   $reg_status = false;
 
