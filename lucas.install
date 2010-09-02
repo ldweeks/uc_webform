@@ -7,7 +7,7 @@ function lucas_schema() {
   $schema = array();
 
   $schema['lucas'] = array(
-    'description' => 'Table for relating a product to a webform submission.',
+    'description' => 'Table for relating products to a webform submission while they are in the users cart.',
     'fields' => array(
       'webform_nid' => array(
         'description' => 'The node identifier of a webform.',
@@ -33,6 +33,12 @@ function lucas_schema() {
         'length' => 255,
         'not null' => TRUE,
         'default' => '0',
+      ),
+      'added' => array(
+        'description' => 'The Unix timestamp indicating the time the product in the cart was changed.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
     //'primary key' => array('sid'), I don't think that I need a primary key, but we'll find out.

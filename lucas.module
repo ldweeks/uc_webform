@@ -66,6 +66,7 @@ function lucas_enable() {
   
   uc_product_add_default_image_field('registration_product');
 
+  /* We no longer need these product attributes, since we have a separate table to keep track of this.
   // These next two if statements are here to prevent the module from repeatedly 
   // adding these attributes when the module is enabled/disabled.
   $exists = db_result(db_query("SELECT name FROM {uc_attributes} WHERE name = '%s'", 'registration_key'));
@@ -77,7 +78,8 @@ function lucas_enable() {
   if (!($exists)) {
     db_query("INSERT INTO {uc_attributes} (name, label, ordering, required, display, description) VALUES ('%s', '%s', '%d', '%d', '%d', '%s')", 'registration_form_id', 'Registration Form ID', 0, 0, 0, 'A registration form ID for a registration form.');
   }
-  
+  */  
+
   // These two functions see the newly added product class, and then build up a product node-type for that class.
   node_types_rebuild();
   menu_rebuild();
@@ -85,7 +87,6 @@ function lucas_enable() {
 
 /**
 * Implementation of hook_disable().
-* When the module is disabled, the registration product content type becomes a "regular" content type.
 */
 function lucas_disable() {
   
@@ -102,6 +103,14 @@ function lucas_disable() {
   menu_rebuild();
   
   drupal_set_message(t('The Registration Product content type is no longer a product class.'));
+}
+
+/**
+* Implementation of hook_cron().
+*/
+function lucas_cron() {
+  $yesterday = time() - 85400;
+  db_query("DELETE FROM {lucas} WHERE added < '%d'", $yesterday);
 }
 
 /**********************************
@@ -133,7 +142,7 @@ function lucas_order($op, &$arg1, $arg2) {
     case 'update':
       $cart_id = uc_cart_get_id();
       foreach ($arg1->products as $product) {
-        $result = db_fetch_array(db_query("SELECT * FROM {lucas} WHERE cart_id = %d AND product_nid = %d", $cart_id, $product->nid));
+        $result = db_fetch_array(db_query("SELECT * FROM {lucas} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid));
   
         $sid = $result['sid'];
         $webform_nid = $result['webform_nid'];
@@ -258,12 +267,12 @@ function lucas_webform_submission_insert($node, $submission) {
 
   // Remove items from previous webform submissions from the cart
   $cart_items = uc_cart_get_contents();
-  $results = db_query("SELECT * FROM {lucas} WHERE cart_id = '%d'", $cart_id);
+  $results = db_query("SELECT * FROM {lucas} WHERE cart_id = '%s'", $cart_id);
 
   while ($result = db_fetch_array($results)) {
     foreach ($cart_items as $cart_item) {
       if($result['sid'] != $submission->sid) {
-        db_query("DELETE FROM {lucas} WHERE sid = %d AND cart_id = %d", $result['sid'], $cart_id);
+        db_query("DELETE FROM {lucas} WHERE sid = %d AND cart_id = '%s'", $result['sid'], $cart_id);
         if($result['product_nid'] == $cart_item->nid) {
           uc_cart_remove_item($result['product_nid'], $cart_id, $cart_item->data);
         }
@@ -282,7 +291,7 @@ function lucas_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            db_query("INSERT INTO {lucas} (webform_nid, product_nid, sid, cart_id) VALUES (%d, %d, %d, %d)", $node->nid, $product, $submission->sid, $cart_id);
+            db_query("INSERT INTO {lucas} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
             uc_cart_add_item($product, 1);
           }
         }
