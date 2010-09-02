@@ -115,16 +115,6 @@ function uc_webform_product_types() {
 */
 function uc_webform_order($op, &$arg1, $arg2) {
   switch ($op) {
-/*    case 'new':
-      drupal_set_message("New");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;
-    case 'can_update':
-      drupal_set_message("Can Update");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;*/
     case 'update':
       $cart_id = uc_cart_get_id();
       foreach ($arg1->products as $product) {
@@ -142,36 +132,6 @@ function uc_webform_order($op, &$arg1, $arg2) {
         }
       }
       break;
-/*    case 'can_delete':
-      drupal_set_message("Can Delete");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;
-    case 'delete':
-      drupal_set_message("Delete");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;
-    case 'total':
-      drupal_set_message("Total");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;
-    case 'save':
-      drupal_set_message("Save");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;
-    case 'load':
-      drupal_set_message("Load");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;
-    case 'submit':
-      drupal_set_message("Submit");
-      dpm($arg1, "Arg 1");
-      dpm($arg2, "Arg 2");
-      break;*/
   }
 }
 
@@ -434,37 +394,43 @@ function _webform_display_uc_product($component, $value, $format = 'html') {
     foreach($value as $product) {
       if($product != 0) {
         $node = node_load($product);
-        dpm($node, "Node");
         $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
         array_push($products, t($product_title));
       }
     }
   }
-  dpm($component, "Component");
-  return array(
+
+  $return = array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
-    '#theme' => 'webform_display_uc_product',
+    '#theme' => theme('item_list', $value),
     '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
     '#format' => $format,
     '#value' => $products,
   );
+
+  dpm($products, "Products");
+  dpm($component, "Component");
+  dpm($value, "Value");
+  dpm($return, "Return");
+
+  return $return;
 }
 
 /**
  * Format the text output for the uc_product component.
  */
-function theme_webform_display_uc_product($element) {
-  
+/*function theme_webform_display_uc_product($element) {
+  drupal_set_message("Hello!");
   // I may need to rethink this in the future.
   if (isset($element['#value'])) {
     $output = theme('item_list', $element['#value']);
   }
 
   return $output;
-}
+}*/
 
 /**
  * Calculate and returns statistics about results for this component.
