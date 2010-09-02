@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * Implementation of hook_schema().
+ */
+function lucas_schema() {
+  $schema = array();
+
+  $schema['lucas'] = array(
+    'description' => 'Table for relating a product to a webform submission.',
+    'fields' => array(
+      'webform_nid' => array(
+        'description' => 'The node identifier of a webform.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'product_nid' => array(
+        'description' => 'The node identifier of a product.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'sid' => array(
+        'description' => 'The identifier of a webform submission.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    ),
+    //'primary key' => array('sid'), I don't think that I need a primary key, but we'll find out.
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function lucas_install() {
+  drupal_install_schema('lucas');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function lucas_uninstall() {
+  drupal_uninstall_schema('lucas');
+}

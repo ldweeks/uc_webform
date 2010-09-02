@@ -283,6 +283,7 @@ function lucas_webform_submission_insert($node, $submission) {
               }
             }
             uc_cart_add_item($product, 1, $data);
+            // Add the $product, $submission->sid, and $node->webform['nid']
           }
         }
       }
@@ -404,10 +405,8 @@ function _webform_render_uc_product($component, $value = NULL) {
   $products = array();
   
   foreach($component['extra']['products'] as $val) {
-    // I'm using the key here because I set it up originally to be 'nid => title', even though it currently is 'nid => nid'. I'm still not sure why the title never makes it to the database.
     $node = node_load($val);
     
-    //<div class="webform-component-' . $component['type'] . '-price" id=webform-component-'. $component['form_key'] . '-price">
     $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
     $products[$node->nid] = t($product_title);
   }
