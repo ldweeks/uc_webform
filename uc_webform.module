@@ -4,6 +4,30 @@
  * Drupal Core Hook Functions
  **********************************/
 
+/** My attempt to add an autocomplete field failed, and I'm giving up.
+ * Implementation of hook_menu().
+ * 
+function uc_webform_menu() {
+  $item[] = array(
+    'path' => 'uc_webform/autocomplete',
+    'callback' => '_uc_webform_autocomplete'
+  );
+}
+
+function _uc_webform_autocomplete($string = '') {
+  $matches = array();
+  $product_types = module_invoke_all('product_types');
+
+  $result = db_query_range("SELECT nid, title FROM {node} WHERE type IN ('". implode("','", $product_types) ."') AND title LIKE '%%%s%'", $string, 0, 10);
+    
+  while ($product = db_fetch_object($result)) {
+    $matches[$product->nid] = check_plain($product->title);
+  }
+
+  print drupal_to_js($matches);
+  exit();
+}*/
+
 /**
 * Implementation of hook_perm().
 */
@@ -310,9 +334,6 @@ function uc_webform_webform_component_insert($component) {
 
 /**
  * Specify the default properties of a component.
- *
- * @return
- *   An array defining the default structure of a component.
  */
 function _webform_defaults_product_list() {
   return array(
@@ -329,8 +350,24 @@ function _webform_defaults_product_list() {
 }
 
 /**
+ * Specify the default properties of a component.
+ */
+function _webform_defaults_product() {
+  return array(
+    'name' => '',
+    'form_key' => NULL,
+    'email' => 1,
+    'mandatory' => 0,
+    'pid' => 0,
+    'weight' => 0,
+    'extra' => array(
+      'description' => '',
+    ),
+  );
+}
+
+/**
  * Generate the form for editing a component.
- *
  */
 function _webform_edit_product_list($component) {
   $form = array();
@@ -381,6 +418,34 @@ function _webform_edit_product_list($component) {
     '#default_value' => $component['extra']['aslist'],
     '#description' => t('Check this option if you want the select component to be of listbox type instead of radiobuttons or checkboxes.'),
   );*/
+  
+  return $form;
+}
+
+/**
+ * Generate the form for editing a component.
+ */
+function _webform_edit_product($component) {
+  $form = array();
+
+  // http://api.lullabot.com/uc_product_types
+  $types = uc_product_types();
+  
+  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
+  
+  while ($row = db_fetch_object($result)) {
+    $products[$row->nid] = $row->title;
+  }
+
+  // Most options are stored in the "extra" array, which stores any settings unique to a particular component type.
+  $form['extra']['product'] = array(
+    '#type' => 'select', 
+    '#title' => t('Products'), 
+    '#default_value' => $component['extra']['product'], 
+    '#weight' => -1,
+    '#description' => t('Please select your product.'),
+    '#options' => $products,
+  );
   
   return $form;
 }
