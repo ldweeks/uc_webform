@@ -185,8 +185,8 @@ function uc_webform_webform_component_info() {
   $components = array();
 
   $components['uc_product'] = array(
-    'label' => t('Ubercart Product'),
-    'description' => t('Add Ubercart Products to your webform.'),
+    'label' => t('Product options'),
+    'description' => t('Add products to your webform.'),
     'features' => array(
       // Add content to CSV downloads. Defaults to TRUE.
       'csv' => TRUE,
