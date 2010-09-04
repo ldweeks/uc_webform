@@ -751,6 +751,9 @@ function theme_webform_display_product($element) {
 
 /**
  * Implementation of _webform_analysis_component().
+ * This is totally broken. It should limit the analysis to webform submissions
+ * that ended with a completed checkout. Instead, it tallies all submissions.
+ *
  */
 function _webform_analysis_product($component, $sids = array()) {
   
@@ -759,7 +762,7 @@ function _webform_analysis_product($component, $sids = array()) {
   $nonblanks = 0;
   $submissions = 0;
   $total = 0;
-  $min = 0;
+  $min = 999999; // This is retarded, but it's late.
   $max = 0;
 
   while ($data = db_fetch_array($results)) {
@@ -782,4 +785,32 @@ function _webform_analysis_product($component, $sids = array()) {
   $rows[3] = array(t('Max'), $max);
   $rows[4] = array(t('Total'), $total);
   return $rows;
+}
+
+/**
+ * Implementation of _webform_table_component().
+ */
+function _webform_table_product($component, $value) {
+  dpm($component);
+  return check_plain(empty($value[0]) ? '' : $value[0]);
+}
+
+/**
+ * Implementation of _webform_csv_headers_component().
+ */
+function _webform_csv_headers_product($component, $export_options) {
+  $header = array();
+  $node = node_load($component['extra']['product']);
+
+  $header[0] = '';
+  $header[1] = $component['name'];
+  $header[2] = $node->model . ' Quantity';
+  return $header;
+}
+
+/**
+ * Implementation of _webform_csv_data_component().
+ */
+function _webform_csv_data_product($component, $export_options, $value) {
+  return !isset($value[0]) ? '' : $value[0];
 }
