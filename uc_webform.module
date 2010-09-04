@@ -291,26 +291,16 @@ function uc_webform_webform_component_insert($component) {
  **********************************/
 
 /**
- * Specify the default properties of a component.
+ * I define two new components: 'product_list', modeled heavily after the 
+ * 'select' component, and 'product', which is modeled after 'textfield'.
+ *
+ * Product List Component
  */
-function _webform_defaults_product_list() {
-  return array(
-    'name' => '',
-    'form_key' => NULL,
-    'email' => 1,
-    'mandatory' => 0,
-    'pid' => 0,
-    'weight' => 0,
-    'extra' => array(
-      'description' => '',
-    ),
-  );
-}
 
 /**
  * Specify the default properties of a component.
  */
-function _webform_defaults_product() {
+function _webform_defaults_product_list() {
   return array(
     'name' => '',
     'form_key' => NULL,
@@ -342,8 +332,7 @@ function _webform_edit_product_list($component) {
     $products[$row->nid] = $row->title;
   }
   
-  // Most options are stored in the "extra" array, which stores any settings
-  // unique to a particular component type.
+  // Most options are stored in the "extra" array, which stores any settings unique to a particular component type.
   $form['extra']['products'] = array(
     '#type' => 'select',
     '#title' => t('Products'),
@@ -362,14 +351,7 @@ function _webform_edit_product_list($component) {
     '#description' => t('Check this option if the user is allowed to select multiple products.'),
     '#weight' => -2,
   );
-  /*$form['extra']['qty'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Quantity'),
-    '#default_value' => $component['extra']['qty'],
-    '#description' => t('Check this option if the user is allowed to specify the quantity for each product.'),
-    '#weight' => -2,
-  );
-  $form['extra']['aslist'] = array(
+  /*$form['extra']['aslist'] = array(
     '#type' => 'checkbox',
     '#title' => t('Listbox'),
     '#return_value' => 'Y',
@@ -377,69 +359,6 @@ function _webform_edit_product_list($component) {
     '#description' => t('Check this option if you want the select component to be of listbox type instead of radiobuttons or checkboxes.'),
   );*/
   
-  return $form;
-}
-
-/**
- * Generate the form for editing a component.
- */
-function _webform_edit_product($component) {
-  $form = array();
-
-  // Get a list of products
-  $types = uc_product_types();
-  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
-  while ($row = db_fetch_object($result)) {
-    $products[$row->nid] = $row->title;
-  }
-
-  $form['value'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Default Quantity'),
-    '#default_value' => $component['value'],
-    '#description' => t('The default quantity of product.'),
-    '#size' => 5,
-    '#maxlength' => 10,
-    '#weight' => 0,
-  );
-  $form['extra']['product'] = array(
-    '#type' => 'select', 
-    '#title' => t('Product'), 
-    '#default_value' => $component['extra']['product'], 
-    '#weight' => -1,
-    '#description' => t('Please select a product.'),
-    '#options' => $products,
-  );
-  $form['validation']['max_qty'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Max Quantity'),
-    '#default_value' => $component['extra']['max_qty'],
-    '#description' => t('Maximum number of products.'),
-    '#size' => 5,
-    '#maxlength' => 10,
-    '#weight' => 2,
-    '#parents' => array('extra', 'max_qty'),
-  );
-  $form['display']['width'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Width'),
-    '#default_value' => $component['extra']['width'],
-    '#description' => t('Width of the textfield.') . ' ' . t('Leaving blank will use the default size.'),
-    '#size' => 5,
-    '#maxlength' => 10,
-    '#weight' => 0,
-    '#parents' => array('extra', 'width'),
-  );
-  $form['display']['disabled'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Disabled'),
-    '#return_value' => 1,
-    '#description' => t('Make this field non-editable. Useful for setting an unchangeable default value.'),
-    '#weight' => 3,
-    '#default_value' => $component['extra']['disabled'],
-    '#parents' => array('extra', 'disabled'),
-  );
-
   return $form;
 }
 
@@ -489,30 +408,6 @@ function _webform_render_product_list($component, $value = NULL) {
 }
 
 /**
- * Render a Webform component to be part of a form.
- *
- */
-function _webform_render_product($component, $value = NULL) {
-
-  $node = node_load($component['extra']['product']);
-  $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
-  
-  $element = array(
-    '#type' => 'textfield',
-    '#title' => $component['name'],
-    '#weight' => $component['weight'],
-    '#size' => $component['extra']['width'],
-    '#description' => $component['extra']['description'],
-    '#default_value' => isset($value) ? $value[0] : $component['value'],
-    '#field_suffix' => $product_title,
-    '#required' => $component['mandatory'],
-    '#disabled' => $component['extra']['disabled'],
-  );
- 
-  return $element;
-}
-
-/**
  * Display the result of a submission for a component.
  * 
  */
@@ -543,27 +438,6 @@ function _webform_display_product_list($component, $value, $format = 'html') {
 }
 
 /**
- * Display the result of a submission for a component.
- * 
- */
-function _webform_display_product($component, $value, $format = 'html') {
-
-  $node = node_load($component['extra']['product']);
-  $product_info = array("Name: $node->title", "Sku: $node->model", "Quantity: $value[0]");
-
-  return array(
-    '#title' => $component['name'],
-    '#weight' => $component['weight'],
-    '#theme' => 'webform_display_product',
-    '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
-    '#post_render' => array('webform_element_wrapper'),
-    '#component' => $component,
-    '#format' => $format,
-    '#value' => $product_info,
-  );
-}
-
-/**
  * Module specific instance of hook_theme().
  *
  * This allows each Webform component to add information into hook_theme().
@@ -571,19 +445,6 @@ function _webform_display_product($component, $value, $format = 'html') {
 function _webform_theme_product_list() {
   return array(
     'webform_display_product_list' => array(
-      'arguments' => array('element' => NULL),
-    ),
-  );
-}
-
-/**
- * Module specific instance of hook_theme().
- *
- * This allows each Webform component to add information into hook_theme().
- */
-function _webform_theme_product() {
-  return array(
-    'webform_display_product' => array(
       'arguments' => array('element' => NULL),
     ),
   );
@@ -599,13 +460,6 @@ function theme_webform_display_product_list($element) {
   }
 
   return $output;
-}
-
-/**
- * Format the text output for the product_list component.
- */
-function theme_webform_display_product($element) {
-  return theme('item_list', $element['#value']);
 }
 
 /**
@@ -745,4 +599,152 @@ function _uc_webform_products($component) {
   }
 
   return $options;
+}
+
+/**
+ * Product Component
+ */
+
+/**
+ * Specify the default properties of a component.
+ */
+function _webform_defaults_product() {
+  return array(
+    'name' => '',
+    'form_key' => NULL,
+    'email' => 1,
+    'mandatory' => 0,
+    'pid' => 0,
+    'weight' => 0,
+    'extra' => array(
+      'description' => '',
+    ),
+  );
+}
+
+/**
+ * Generate the form for editing a component.
+ */
+function _webform_edit_product($component) {
+  $form = array();
+
+  // Get a list of products
+  $types = uc_product_types();
+  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
+  while ($row = db_fetch_object($result)) {
+    $products[$row->nid] = $row->title;
+  }
+
+  $form['value'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Default Quantity'),
+    '#default_value' => $component['value'],
+    '#description' => t('The default quantity of product.'),
+    '#size' => 5,
+    '#maxlength' => 10,
+    '#weight' => 0,
+  );
+  $form['extra']['product'] = array(
+    '#type' => 'select', 
+    '#title' => t('Product'), 
+    '#default_value' => $component['extra']['product'], 
+    '#weight' => -1,
+    '#description' => t('Please select a product.'),
+    '#options' => $products,
+  );
+  $form['validation']['max_qty'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max Quantity'),
+    '#default_value' => $component['extra']['max_qty'],
+    '#description' => t('Maximum number of products.'),
+    '#size' => 5,
+    '#maxlength' => 10,
+    '#weight' => 2,
+    '#parents' => array('extra', 'max_qty'),
+  );
+  $form['display']['width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Width'),
+    '#default_value' => $component['extra']['width'],
+    '#description' => t('Width of the textfield.') . ' ' . t('Leaving blank will use the default size.'),
+    '#size' => 5,
+    '#maxlength' => 10,
+    '#weight' => 0,
+    '#parents' => array('extra', 'width'),
+  );
+  $form['display']['disabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Disabled'),
+    '#return_value' => 1,
+    '#description' => t('Make this field non-editable. Useful for setting an unchangeable default value.'),
+    '#weight' => 3,
+    '#default_value' => $component['extra']['disabled'],
+    '#parents' => array('extra', 'disabled'),
+  );
+
+  return $form;
+}
+
+/**
+ * Render a Webform component to be part of a form.
+ *
+ */
+function _webform_render_product($component, $value = NULL) {
+
+  $node = node_load($component['extra']['product']);
+  $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
+  
+  $element = array(
+    '#type' => 'textfield',
+    '#title' => $component['name'],
+    '#weight' => $component['weight'],
+    '#size' => $component['extra']['width'],
+    '#description' => $component['extra']['description'],
+    '#default_value' => isset($value) ? $value[0] : $component['value'],
+    '#field_suffix' => $product_title,
+    '#required' => $component['mandatory'],
+    '#disabled' => $component['extra']['disabled'],
+  );
+ 
+  return $element;
+}
+
+/**
+ * Display the result of a submission for a component.
+ */
+function _webform_display_product($component, $value, $format = 'html') {
+
+  $node = node_load($component['extra']['product']);
+  $product_info = array("Name: $node->title", "Sku: $node->model", "Quantity: $value[0]");
+
+  return array(
+    '#title' => $component['name'],
+    '#weight' => $component['weight'],
+    '#theme' => 'webform_display_product',
+    '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
+    '#post_render' => array('webform_element_wrapper'),
+    '#component' => $component,
+    '#format' => $format,
+    '#value' => $product_info,
+  );
+}
+
+/**
+ * Module specific instance of hook_theme().
+ *
+ * This allows each Webform component to add information into hook_theme().
+ */
+function _webform_theme_product() {
+  return array(
+    'webform_display_product' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+/**
+ * Format the text output for the product component.
+ */
+function theme_webform_display_product($element) {
+  return theme('item_list', $element['#value']);
 }
