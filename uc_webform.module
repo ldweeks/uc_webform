@@ -748,3 +748,38 @@ function _webform_theme_product() {
 function theme_webform_display_product($element) {
   return theme('item_list', $element['#value']);
 }
+
+/**
+ * Implementation of _webform_analysis_component().
+ */
+function _webform_analysis_product($component, $sids = array()) {
+  
+  $results = db_query("SELECT data FROM {webform_submitted_data} WHERE cid = %d", $component['cid']);
+
+  $nonblanks = 0;
+  $submissions = 0;
+  $total = 0;
+  $min = 0;
+  $max = 0;
+
+  while ($data = db_fetch_array($results)) {
+    $num = trim($data['data']);
+    if (drupal_strlen($num) > 0) {
+      $nonblanks++;
+      $total += $num;
+      if ($num < $min) {
+        $min = $num;
+      } elseif ($num > $max) {
+        $max = $num;
+      }
+    }
+    $submissions++;
+  }
+
+  $rows[0] = array(t('Left Blank'), ($submissions - $nonblanks));
+  $rows[1] = array(t('User entered value'), $nonblanks);
+  $rows[2] = array(t('Min'), $min);
+  $rows[3] = array(t('Max'), $max);
+  $rows[4] = array(t('Total'), $total);
+  return $rows;
+}
