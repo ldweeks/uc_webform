@@ -6,7 +6,7 @@
 function uc_webform_schema() {
   $schema = array();
 
-  $schema['uc_webform'] = array(
+  $schema['uc_webform_cart'] = array(
     'description' => 'Table for relating products to a webform submission while they are in the users cart.',
     'fields' => array(
       'webform_nid' => array(
@@ -48,13 +48,13 @@ function uc_webform_schema() {
     'fields' => array(
       'sid' => array(
         'description' => 'The unique identifier for this submission.',
-        'type' => 'serial',
+        'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'order_id' => array(
         'description' => 'Primary key: the order ID.',
-        'type' => 'serial',
+        'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
