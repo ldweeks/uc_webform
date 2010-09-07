@@ -93,11 +93,11 @@ function uc_webform_disable() {
 
 /**
 * Implementation of hook_cron().
-*/
+*
 function uc_webform_cron() {
   $yesterday = time() - 85400;
   db_query("DELETE FROM {uc_webform} WHERE added < '%d'", $yesterday);
-}
+}*/
 
 /**
 * Implementation of hook_form_alter().
@@ -139,6 +139,18 @@ function uc_webform_order($op, &$arg1, $arg2) {
           $query_result = db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $updated_status, $webform_nid, $sid, $cid);          
         }
       }
+      break;
+  }
+}
+
+/**
+* Implementation of hook_update_cart_item().
+*/
+function uc_webform_cart_item($op, &$item) {
+  switch ($op) {
+    case 'remove':
+      dpm($item, "Item");
+      db_query("DELETE FROM {uc_webform} WHERE cart_id = '%s' AND product_nid = %d", $item->cart_id, $item->nid);
       break;
   }
 }
