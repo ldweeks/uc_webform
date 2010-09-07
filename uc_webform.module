@@ -101,10 +101,12 @@ function uc_webform_cron() {
 
 /**
 * Implementation of hook_form_alter().
+* Note: I'll need this later, perhaps, for alter ubercart and/or webform forms.
 */
 function uc_webform_form_alter(&$form, &$form_state, $form_id) {
   dpm($form, "Form");
   dpm($form_state, "Form State");
+  dpm($form_id, "Form ID");
 }
 
 /**********************************
@@ -268,6 +270,17 @@ function uc_webform_webform_submission_insert($node, $submission) {
             uc_cart_add_item($product, 1);
           }
         }
+      }
+    } elseif ($component['type'] == 'product') {
+      if (array_key_exists($component['cid'], $submission->data)) {
+        $key = $component['cid'];
+        $qty = (integer) $submission->data[$key]['value'][0];
+
+        $component_data = unserialize(db_result(db_query("SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d", $component['cid'], $node->nid)));
+        $product = $component_data['product'];
+
+        db_query("INSERT INTO {uc_webform} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
+        uc_cart_add_item($product, $qty);
       }
     }
   }
