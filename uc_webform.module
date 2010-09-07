@@ -109,6 +109,21 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
   dpm($form_id, "Form ID");
 }
 
+/**
+* Implementation of hook_user().
+*/
+function uc_webform_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'login':
+      watchdog('uc_webform - _SESSION', (string) $_SESSION['uc_cart_id']);
+      watchdog('uc_webform - $account[session]', $account->sid);
+      /* Update uc_webform so the ID is switched from the session to user ID.
+      db_query("UPDATE {uc_webform} SET cart_id = %d WHERE cart_id = '%s'", (integer) $account->uid, $account->sid);*/
+      break;
+  }
+}
+
+
 /**********************************
  * Ubercart Hook Functions
  **********************************/
