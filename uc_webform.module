@@ -195,9 +195,6 @@ function _uc_webform_product_options() {
 
 /**
  * Define components to Webform.
- *
- * @return
- *   An array of components, keyed by machine name.
  * 
  * Form more information: http://drupal.org/node/886014
  */
@@ -259,6 +256,8 @@ function uc_webform_webform_submission_insert($node, $submission) {
   $components = $node->webform['components'];
   $component_ids = array();
   $data = array();
+  dpm($submission, "Submission");
+  dpm($components, "Components");
 
   foreach ($components as $component) {
     if ($component['type'] == 'product_list') {
@@ -279,8 +278,10 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $component_data = unserialize(db_result(db_query("SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d", $component['cid'], $node->nid)));
         $product = $component_data['product'];
 
-        db_query("INSERT INTO {uc_webform} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
-        uc_cart_add_item($product, $qty);
+        if ($qty > 0) {
+          db_query("INSERT INTO {uc_webform} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
+          uc_cart_add_item($product, $qty);
+        }
       }
     }
   }
