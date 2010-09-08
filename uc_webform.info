@@ -3,6 +3,7 @@ name = Ubercart Webform Integration
 description = Integrates the ubercart and webform modules.
 dependencies[] = webform
 dependencies[] = uc_product
+dependencies[] = uc_cart
 core = 6.x
 version = "6.x-1.0-dev"
 package = Webform
