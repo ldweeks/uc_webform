@@ -103,11 +103,11 @@ function uc_webform_cron() {
 * Implementation of hook_form_alter().
 * Note: I'll need this later, perhaps, for alter ubercart and/or webform forms.
 */
-function uc_webform_form_alter(&$form, &$form_state, $form_id) {
-  /*dpm($form, "Form");
+/*function uc_webform_form_alter(&$form, &$form_state, $form_id) {
+  dpm($form, "Form");
   dpm($form_state, "Form State");
-  dpm($form_id, "Form ID");*/
-}
+  dpm($form_id, "Form ID");
+}*/
 
 /**
 * Implementation of hook_user().
@@ -164,14 +164,14 @@ function uc_webform_product_types() {
 
 /**
 * Implementation of hook_update_cart_item().
-*
+*/
 function uc_webform_cart_item($op, &$item) {
   switch ($op) {
     case 'remove':
-      db_query("DELETE FROM {uc_webform} WHERE cart_id = '%s' AND product_nid = %d", $item->cart_id, $item->nid);
+      db_query("DELETE FROM {uc_webform_cart} WHERE cart_id = '%s' AND product_nid = %d", $item->cart_id, $item->nid);
       break;
   }
-}*/
+}
 
 /**********************************
  * Webform Hooks
