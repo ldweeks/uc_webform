@@ -43,17 +43,23 @@ function uc_webform_schema() {
     ),
   );
 
-  $schema['uc_webform_orders'] = array(
+  $schema['uc_webform_order'] = array(
     'description' => 'Table for relating an ubercart order with a webform submission.',
     'fields' => array(
-      'sid' => array(
+      'webform_sid' => array(
         'description' => 'The unique identifier for this submission.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'order_id' => array(
-        'description' => 'Primary key: the order ID.',
+        'description' => 'The order ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'product_nid' => array(
+        'description' => 'The node identifier of a product.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
