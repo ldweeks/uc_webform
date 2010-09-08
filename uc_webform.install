@@ -69,6 +69,11 @@ function uc_webform_schema() {
  */
 function uc_webform_install() {
   drupal_install_schema('uc_webform');
+  
+  // Force hooks from uc_webform to fire before those in uc_cart.
+  $weight = (int) db_result(db_query("SELECT weight FROM {system} WHERE name = 'uc_cart' AND type = 'module';"));
+  
+  db_query("UPDATE {system} SET weight = %d WHERE name = 'uc_webform' AND type = 'module';", $weight - 1);
 }
 
 /**
