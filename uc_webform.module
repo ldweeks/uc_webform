@@ -24,8 +24,15 @@ function uc_webform_order($op, &$arg1, $arg2) {
       foreach ($arg1->products as $product) {
         if (isset($product->data['webform_sid'])) {
           $message = l("View form submission", 'node/' . $product->data['webform_nid'] . '/submission/' . $product->data['webform_sid']);
+          
+          // Add an admin comment that links to the webform submission.
           uc_order_comment_save($arg1->order_id, $arg1->uid, $message, 'admin');
-    
+          
+          // Add the webform submission id and webform node id to the uc_orders table
+          $data['webform_sid'] = $product->data['webform_sid'];
+          $data['webform_nid'] = $product->data['webform_nid'];
+          db_query("UPDATE {uc_orders} SET data = '%s' WHERE order_id = %d", serialize($data), $arg1->order_id);
+
           break;
         }
       }
