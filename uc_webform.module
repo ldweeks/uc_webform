@@ -15,7 +15,26 @@
 }*/
 
 /**********************************
- * Webform Hooks
+ * Ubercart Hook Functions
+ **********************************/
+
+function uc_webform_order($op, &$arg1, $arg2) {
+  switch ($op) {
+    case 'submit':
+      foreach ($arg1->products as $product) {
+        if (isset($product->data['webform_sid'])) {
+          $message = l("View form submission", 'node/' . $product->data['webform_nid'] . '/submission/' . $product->data['webform_sid']);
+          uc_order_comment_save($arg1->order_id, $arg1->uid, $message, 'admin');
+    
+          break;
+        }
+      }
+      break;
+  }
+}
+
+/**********************************
+ * Webform Hook Functions
  **********************************/
 
 /**
@@ -130,7 +149,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
 }
 
 /**********************************
- * Webform API Functions
+ * Webform API Functions (not hooks)
  **********************************/
 
 /**
