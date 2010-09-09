@@ -92,14 +92,6 @@ function uc_webform_disable() {
 }
 
 /**
-* Implementation of hook_cron().
-*
-function uc_webform_cron() {
-  $yesterday = time() - 85400;
-  db_query("DELETE FROM {uc_webform} WHERE added < '%d'", $yesterday);
-}*/
-
-/**
 * Implementation of hook_form_alter().
 * Note: I'll need this later, perhaps, for alter ubercart and/or webform forms.
 */
@@ -108,22 +100,6 @@ function uc_webform_cron() {
   dpm($form_state, "Form State");
   dpm($form_id, "Form ID");
 }*/
-
-/**
-* Implementation of hook_user().
-*/
-function uc_webform_user($op, &$edit, &$account, $category = NULL) {
-  switch ($op) {
-    case 'login':
-      $cart_id = isset($_SESSION['uc_cart_id']) ? $_SESSION['uc_cart_id'] : false;
-      // Update uc_webform_cart so the ID is switched from the session to user ID.
-      if ($cart_id) {
-        db_query("UPDATE {uc_webform_cart} SET cart_id = %d WHERE cart_id = '%s'", (integer) $account->uid, $cart_id);
-      }
-      break;
-  }
-}
-
 
 /**********************************
  * Ubercart Hook Functions
@@ -134,74 +110,6 @@ function uc_webform_user($op, &$edit, &$account, $category = NULL) {
 */
 function uc_webform_product_types() {
   return array('registration_product');
-}
-
-/**
-* Implementation of hook_order().
-* REMEMBER: This is for ORDERS, which don't exist until checkout is complete!
-*/
-function uc_webform_order($op, &$arg1, $arg2) {
-  switch ($op) {
-    /*case 'new':
-      
-      db_query("SELECT * FROM {uc_webform_cart} WHERE cart_id = '%s'", );
-
-
-      (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
-
-
-      db_query("INSERT INTO {uc_webform_order} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid)
-      break;*/
-    /*case 'update':
-      $cart_id = uc_cart_get_id();
-      foreach ($arg1->products as $product) {
-        $result = db_fetch_array(db_query("SELECT * FROM {uc_webform} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid));
-  
-        $sid = $result['sid'];
-        $webform_nid = $result['webform_nid'];
-
-        /*if (isset($sid) && isset($webform_nid)) {
-          $updated_status = strtoupper($arg2) . ' - Order #' . $arg1->order_id;
-
-          $cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'registration_status'", $webform_nid));
-
-          $query_result = db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $updated_status, $webform_nid, $sid, $cid);          
-        }
-      }
-      break;*/
-    case 'save':
-      // Save information about an order with webform products into uc_webform_order
-      /*if (isset($arg1->products[0])) {
-        $cart_id = $arg1->products[0]->cart_id;
-        $results = db_query("SELECT * FROM {uc_webform_cart} WHERE cart_id = '$s'", $cart_id);
-
-        while ($result = db_fetch_array($results)) {
-          
-          $count = 0;
-          while ($count < count($arg1->products)) {
-            if ($result['product_nid'] == $arg1->products[$count]->nid) {
-              //$arg1->products[$count]->webform_sid = $result['sid'];
-              //db_query("INSERT INTO {uc_webform_order} (webform_sid, order_id, product_nid) VALUES (%d, %d, %d)", $result['sid'], $product->order_id, $product->nid);
-
-              //db_query("DELETE FROM {uc_webform_cart} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid);
-            }
-            $count++;
-          }
-        }
-      }*/
-      break;
-  }
-}
-
-/**
-* Implementation of hook_update_cart_item().
-*/
-function uc_webform_cart_item($op, &$item) {
-  switch ($op) {
-    case 'remove':
-      db_query("DELETE FROM {uc_webform_cart} WHERE cart_id = '%s' AND product_nid = %d", $item->cart_id, $item->nid);
-      break;
-  }
 }
 
 /**********************************
@@ -285,21 +193,6 @@ function uc_webform_webform_submission_insert($node, $submission) {
 
   $cart_id = uc_cart_get_id();
 
-  //Remove items from previous webform submissions from the cart
-  $cart_items = uc_cart_get_contents();
-  $results = db_query("SELECT * FROM {uc_webform_cart} WHERE cart_id = '%s'", $cart_id);
-
-  while ($result = db_fetch_array($results)) {
-    foreach ($cart_items as $cart_item) {
-      if($result['sid'] != $submission->sid) {
-        db_query("DELETE FROM {uc_webform_cart} WHERE sid = %d AND cart_id = '%s'", $result['sid'], $cart_id);
-        if($result['product_nid'] == $cart_item->nid) {
-          uc_cart_remove_item($result['product_nid'], $cart_id, $cart_item->data);
-        }
-      }
-    }
-  }
-
   // Add new items to the cart
   $components = $node->webform['components'];
   $component_ids = array();
@@ -311,7 +204,6 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            db_query("INSERT INTO {uc_webform_cart} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
             uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid));
           }
         }
@@ -325,34 +217,9 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $product = $component_data['product'];
 
         if ($qty > 0) {
-          db_query("INSERT INTO {uc_webform_cart} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
           uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid));
         }
       }
-    }
-  }
-}
-
-/**
- * Respond to a Webform component being inserted into the database.
- * A registration system requires that there exists a hidden "status" field.
- * TO DO: Become less dependent on the user.
- */
-function uc_webform_webform_component_insert($component) {
-
-  $reg_status = false;
-
-  if ($component['type'] == 'product_list') {
-    $node = node_load($component['nid']);
-    foreach ($node->webform['components'] as $curr_component) {
-      if (($curr_component['type'] == 'hidden') && ($curr_component['form_key'] == 'registration_status')) { 
-        $reg_status = true;
-        break;
-      }
-    }
-    
-    if (!$reg_status) {
-      drupal_set_message('For registration to work correctly, you must add a hidden component with a key of "registration_status" with a default value of "Did not complete checkout".', 'warning', true);
     }
   }
 }
