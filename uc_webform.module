@@ -8,16 +8,51 @@
 * Implementation of hook_form_alter().
 * Note: I'll need this later, perhaps, for alter ubercart and/or webform forms.
 */
-/*function uc_webform_form_alter(&$form, &$form_state, $form_id) {
+function uc_webform_form_alter(&$form, &$form_state, $form_id) {
+
+  switch ($form_id) {
+    case 'uc_cart_view_form':
+      $uc_webform_exists = false;
+      $count = 0;
+      while (isset($form['items'][$count])) {
+        if (isset($form['items'][$count]['data']['#value'])) {
+          $data = unserialize($form['items'][$count]['data']['#value']);
+          if ($data['webform_ctype'] == 'product_list') {
+            // Users may not remove webform products from their cart without first modify the webform.
+            $form['items'][$count]['remove']['#disabled'] = true;
+            $uc_webform_exists = true;
+            $webform_nid = $data['webform_nid'];
+    
+            // Users may not edit the quantity of a product_list webform product.
+            $form['items'][$count]['qty']['#disabled'] = true;
+            $form['items'][$count]['qty']['#value'] = 1; // If you don't specicfy #value here, all products will be removed if any product is removed.
+          } elseif ($data['webform_ctype'] == 'product') {
+            // Users may not remove webform products from their cart without first modify the webform.
+            $form['items'][$count]['remove']['#disabled'] = true;
+            $uc_webform_exists = true;
+            $webform_nid = $data['webform_nid'];
+          }
+        }
+        $count++;
+      }
+    
+      $message = 'To remove items form your cart that are associated with a form submission, please modify the form. You may click the "back" button in your browswer, or click ' . l('here', 'node/' . $webform_nid) . ' to start over.';
+      drupal_set_message(t($message), 'status', FALSE);
+
+      break;
+  }
   dpm($form, "Form");
-  dpm($form_state, "Form State");
-  dpm($form_id, "Form ID");
-}*/
+  //dpm($form_state, "Form State");
+  //dpm($form_id, "Form ID");
+}
 
 /**********************************
  * Ubercart Hook Functions
  **********************************/
 
+/**
+* Implementation of hook_order().
+*/
 function uc_webform_order($op, &$arg1, $arg2) {
   switch ($op) {
     case 'submit':
@@ -38,6 +73,10 @@ function uc_webform_order($op, &$arg1, $arg2) {
       }
       break;
   }
+}
+
+function uc_webform_cart_item($op, &$item) {
+  $dummy = array();
 }
 
 /**********************************
@@ -135,7 +174,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid));
+            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list'));
           }
         }
       }
@@ -148,7 +187,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $product = $component_data['product'];
 
         if ($qty > 0) {
-          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid));
+          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product'));
         }
       }
     }
