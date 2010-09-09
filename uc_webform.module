@@ -95,6 +95,15 @@ function uc_webform_webform_submission_insert($node, $submission) {
 
   $cart_id = uc_cart_get_id();
 
+  //Remove items from previous webform submissions from the cart
+  $cart_items = uc_cart_get_contents();
+
+  foreach ($cart_items as $cart_item) {
+    if(isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
+      uc_cart_remove_item($cart_item->nid, $cart_item->cart_id, $cart_item->data);
+    }
+  }
+
   // Add new items to the cart
   $components = $node->webform['components'];
   $component_ids = array();
@@ -106,7 +115,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid));
+            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid));
           }
         }
       }
@@ -119,7 +128,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $product = $component_data['product'];
 
         if ($qty > 0) {
-          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid));
+          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid));
         }
       }
     }
