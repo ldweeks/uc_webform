@@ -116,7 +116,7 @@ function uc_webform_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
     case 'login':
       $cart_id = isset($_SESSION['uc_cart_id']) ? $_SESSION['uc_cart_id'] : false;
-      // Update uc_webform so the ID is switched from the session to user ID.
+      // Update uc_webform_cart so the ID is switched from the session to user ID.
       if ($cart_id) {
         db_query("UPDATE {uc_webform_cart} SET cart_id = %d WHERE cart_id = '%s'", (integer) $account->uid, $cart_id);
       }
@@ -140,9 +140,19 @@ function uc_webform_product_types() {
 * Implementation of hook_order().
 * REMEMBER: This is for ORDERS, which don't exist until checkout is complete!
 */
-/*function uc_webform_order($op, &$arg1, $arg2) {
+function uc_webform_order($op, &$arg1, $arg2) {
   switch ($op) {
-    case 'update':
+    /*case 'new':
+      
+      db_query("SELECT * FROM {uc_webform_cart} WHERE cart_id = '%s'", );
+
+
+      (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
+
+
+      db_query("INSERT INTO {uc_webform_order} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid)
+      break;*/
+    /*case 'update':
       $cart_id = uc_cart_get_id();
       foreach ($arg1->products as $product) {
         $result = db_fetch_array(db_query("SELECT * FROM {uc_webform} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid));
@@ -150,7 +160,7 @@ function uc_webform_product_types() {
         $sid = $result['sid'];
         $webform_nid = $result['webform_nid'];
 
-        if (isset($sid) && isset($webform_nid)) {
+        /*if (isset($sid) && isset($webform_nid)) {
           $updated_status = strtoupper($arg2) . ' - Order #' . $arg1->order_id;
 
           $cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'registration_status'", $webform_nid));
@@ -158,9 +168,30 @@ function uc_webform_product_types() {
           $query_result = db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $updated_status, $webform_nid, $sid, $cid);          
         }
       }
+      break;*/
+    case 'save':
+      // Save information about an order with webform products into uc_webform_order
+      /*if (isset($arg1->products[0])) {
+        $cart_id = $arg1->products[0]->cart_id;
+        $results = db_query("SELECT * FROM {uc_webform_cart} WHERE cart_id = '$s'", $cart_id);
+
+        while ($result = db_fetch_array($results)) {
+          
+          $count = 0;
+          while ($count < count($arg1->products)) {
+            if ($result['product_nid'] == $arg1->products[$count]->nid) {
+              //$arg1->products[$count]->webform_sid = $result['sid'];
+              //db_query("INSERT INTO {uc_webform_order} (webform_sid, order_id, product_nid) VALUES (%d, %d, %d)", $result['sid'], $product->order_id, $product->nid);
+
+              //db_query("DELETE FROM {uc_webform_cart} WHERE cart_id = '%s' AND product_nid = %d", $cart_id, $product->nid);
+            }
+            $count++;
+          }
+        }
+      }*/
       break;
   }
-}*/
+}
 
 /**
 * Implementation of hook_update_cart_item().
@@ -281,7 +312,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
             db_query("INSERT INTO {uc_webform_cart} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
-            uc_cart_add_item($product, 1);
+            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid));
           }
         }
       }
@@ -295,7 +326,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
 
         if ($qty > 0) {
           db_query("INSERT INTO {uc_webform_cart} (webform_nid, product_nid, sid, cart_id, added) VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", $node->nid, $product, $submission->sid, $cart_id);
-          uc_cart_add_item($product, $qty);
+          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid));
         }
       }
     }
