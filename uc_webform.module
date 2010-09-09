@@ -93,8 +93,6 @@ function uc_webform_webform_component_info() {
  */
 function uc_webform_webform_submission_insert($node, $submission) {
 
-  $cart_id = uc_cart_get_id();
-
   //Remove items from previous webform submissions from the cart
   $cart_items = uc_cart_get_contents();
 
@@ -105,11 +103,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
   }
 
   // Add new items to the cart
-  $components = $node->webform['components'];
-  $component_ids = array();
-  $data = array();
-
-  foreach ($components as $component) {
+  foreach ($node->webform['components'] as $component) {
     if ($component['type'] == 'product_list') {
       if (array_key_exists($component['cid'], $submission->data)) {
         $key = $component['cid'];
