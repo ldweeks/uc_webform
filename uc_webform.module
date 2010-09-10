@@ -86,7 +86,7 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
       }
       break;
   }
-  //dpm($form, "Form");
+  dpm($form, "Form");
   //dpm($form_state, "Form State");
   //dpm($form_id, "Form ID");
 }
@@ -213,36 +213,48 @@ function uc_webform_webform_component_info() {
  */
 function uc_webform_webform_submission_insert($node, $submission) {
 
-  //Remove items from previous webform submissions from the cart
-  $cart_items = uc_cart_get_contents();
-
-  foreach ($cart_items as $cart_item) {
-    if(isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
-      uc_cart_remove_item($cart_item->nid, $cart_item->cart_id, $cart_item->data);
+  // If the latest webform submission has products in it, remove the
+  // previous webform submission products and add the new ones. Otherwise,
+  // allow the form to be submitted without incident.
+  foreach ($node->webform['components'] as $component) {
+    if (($component['type'] == 'product_list') || ($component['type'] == 'product')) {
+      $remove = true;
+      break;
     }
   }
 
-  // Add new items to the cart
-  foreach ($node->webform['components'] as $component) {
-    if ($component['type'] == 'product_list') {
-      if (array_key_exists($component['cid'], $submission->data)) {
-        $key = $component['cid'];
-        foreach ($submission->data[$key]['value'] as $product) {
-          if ($product != 0) {
-            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list', 'webform_cid' => $component['cid']));
+  if ($remove) {
+    // Remove items from previous webform submissions from the cart
+    $cart_items = uc_cart_get_contents();
+  
+    foreach ($cart_items as $cart_item) {
+      if(isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
+        uc_cart_remove_item($cart_item->nid, $cart_item->cart_id, $cart_item->data);
+      }
+    }
+
+    // Add new items to the cart
+    foreach ($node->webform['components'] as $component) {
+      if ($component['type'] == 'product_list') {
+        if (array_key_exists($component['cid'], $submission->data)) {
+          $key = $component['cid'];
+          foreach ($submission->data[$key]['value'] as $product) {
+            if ($product != 0) {
+              uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list', 'webform_cid' => $component['cid']));
+            }
           }
         }
-      }
-    } elseif ($component['type'] == 'product') {
-      if (array_key_exists($component['cid'], $submission->data)) {
-        $key = $component['cid'];
-        $qty = (integer) $submission->data[$key]['value'][0];
-
-        $component_data = unserialize(db_result(db_query("SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d", $component['cid'], $node->nid)));
-        $product = $component_data['product'];
-
-        if ($qty > 0) {
-          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
+      } elseif ($component['type'] == 'product') {
+        if (array_key_exists($component['cid'], $submission->data)) {
+          $key = $component['cid'];
+          $qty = (integer) $submission->data[$key]['value'][0];
+  
+          $component_data = unserialize(db_result(db_query("SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d", $component['cid'], $node->nid)));
+          $product = $component_data['product'];
+  
+          if ($qty > 0) {
+            uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
+          }
         }
       }
     }
@@ -331,6 +343,7 @@ function _webform_edit_product_list($component) {
  */
 function _webform_render_product_list($component, $value = NULL) {
 
+  dpm($component, "Product List Component");
   $products = array();
   
   foreach($component['extra']['products'] as $val) {
@@ -348,6 +361,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#description'   => _webform_filter_descriptions($component['extra']['description']),
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
+      '#required' => $component['mandatory'],
       '#options' => $products,
     );
   }
@@ -359,6 +373,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#description'   => _webform_filter_descriptions($component['extra']['description']),
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
+      '#required' => $component['mandatory'],
       '#options' => $products,
     );
   }  
