@@ -5,8 +5,51 @@
  **********************************/
 
 /**
+ * Implementation of hook_menu().
+ */
+function uc_webform_menu() {
+  $items = array();
+
+  $items['cart/delete-form'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_webform_submission_delete_products_form'),
+    //'access callback' => This defaults to user_access
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Confirm form to delete all of the products from the cart that are associated with
+ * mandatory webform submission elements.
+ */
+function uc_webform_submission_delete_products_form() {
+
+  $question = t('This product was a mandatory part of a form submission. If you remove this product from your cart, all products associated with your form submission will also be removed. Are you sure you want to delete this product?');
+
+  $destination = 'cart';
+
+  return confirm_form(array(), NULL, $destination, $question, t('Delete'), t('Cancel'));
+}
+
+function uc_webform_submission_delete_products_form_submit($form, &$form_state) {
+
+  //Remove all items from the current webform submission from the cart
+  $cart_items = uc_cart_get_contents();
+
+  foreach ($cart_items as $cart_item) {
+    if (isset($cart_item->data['webform_sid'])) {
+      uc_cart_remove_item($cart_item->nid, $cart_item->cart_id, $cart_item->data);
+    }
+  }
+
+  $form_state['redirect'] = 'cart';
+}
+
+/**
 * Implementation of hook_form_alter().
-* Note: I'll need this later, perhaps, for alter ubercart and/or webform forms.
 */
 function uc_webform_form_alter(&$form, &$form_state, $form_id) {
 
@@ -17,31 +60,33 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
       while (isset($form['items'][$count])) {
         if (isset($form['items'][$count]['data']['#value'])) {
           $data = unserialize($form['items'][$count]['data']['#value']);
-          if ($data['webform_ctype'] == 'product_list') {
+
+          // Check to see if the product was a mandatory field in the webform submission.
+          $mandatory = db_result(db_query("SELECT mandatory FROM {webform_component} WHERE nid = %d AND cid = %d", $data['webform_nid'], $data['webform_cid']));
+
+          if (($data['webform_ctype'] == 'product_list') || ($data['webform_ctype'] == 'product')) {
             // Users may not remove webform products from their cart without first modify the webform.
-            $form['items'][$count]['remove']['#disabled'] = true;
+            //$form['items'][$count]['remove']['#disabled'] = true;
             $uc_webform_exists = true;
             $webform_nid = $data['webform_nid'];
-    
-            // Users may not edit the quantity of a product_list webform product.
-            $form['items'][$count]['qty']['#disabled'] = true;
-            $form['items'][$count]['qty']['#value'] = 1; // If you don't specicfy #value here, all products will be removed if any product is removed.
-          } elseif ($data['webform_ctype'] == 'product') {
-            // Users may not remove webform products from their cart without first modify the webform.
-            $form['items'][$count]['remove']['#disabled'] = true;
-            $uc_webform_exists = true;
-            $webform_nid = $data['webform_nid'];
+
+            if ($mandatory == 1) {
+              $form['items'][$count]['remove']['#type'] = 'markup';
+              $form['items'][$count]['remove']['#value'] = l(t('Delete'), "cart/delete-form", array('query' => drupal_get_destination()));
+            }
+            
+            if ($data['webform_ctype'] == 'product_list') {
+              // Users may not edit the quantity of a product_list webform product.
+              $form['items'][$count]['qty']['#disabled'] = true;
+              $form['items'][$count]['qty']['#value'] = 1; // If you don't specicfy #value here, all products will be removed if any product is removed.
+            }
           }
         }
         $count++;
       }
-    
-      $message = 'To remove items form your cart that are associated with a form submission, please modify the form. You may click the "back" button in your browswer, or click ' . l('here', 'node/' . $webform_nid) . ' to start over.';
-      drupal_set_message(t($message), 'status', FALSE);
-
       break;
   }
-  dpm($form, "Form");
+  //dpm($form, "Form");
   //dpm($form_state, "Form State");
   //dpm($form_id, "Form ID");
 }
@@ -76,7 +121,17 @@ function uc_webform_order($op, &$arg1, $arg2) {
 }
 
 function uc_webform_cart_item($op, &$item) {
-  $dummy = array();
+  switch ($op) {
+    case 'remove':
+      $data = unserialize($item->data);
+      if ($data['webform_ctype'] == 'product_list') {
+        // This query depends on my using the no column of webform_submitted_data incorrectly, and will need to be updated.
+        db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND no = '%s'", $data['webform_nid'], $data['webform_sid'], $item->nid);
+      } elseif ($data['webform_ctype'] == 'product') {
+        db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']);
+      }
+      break;
+  }
 }
 
 /**********************************
@@ -174,7 +229,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $key = $component['cid'];
         foreach ($submission->data[$key]['value'] as $product) {
           if ($product != 0) {
-            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list'));
+            uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list', 'webform_cid' => $component['cid']));
           }
         }
       }
@@ -187,7 +242,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
         $product = $component_data['product'];
 
         if ($qty > 0) {
-          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product'));
+          uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
         }
       }
     }
