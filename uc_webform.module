@@ -86,7 +86,7 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
       }
       break;
   }
-  dpm($form, "Form");
+  //dpm($form, "Form");
   //dpm($form_state, "Form State");
   //dpm($form_id, "Form ID");
 }
@@ -125,8 +125,7 @@ function uc_webform_cart_item($op, &$item) {
     case 'remove':
       $data = unserialize($item->data);
       if ($data['webform_ctype'] == 'product_list') {
-        // This query depends on my using the no column of webform_submitted_data incorrectly, and will need to be updated.
-        db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND no = '%s'", $data['webform_nid'], $data['webform_sid'], $item->nid);
+        db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND data = '%s'", $data['webform_nid'], $data['webform_sid'], $item->nid);
       } elseif ($data['webform_ctype'] == 'product') {
         db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']);
       }
@@ -270,7 +269,7 @@ function uc_webform_webform_component_presave(&$component) {
 
 /**
  * Modify a Webform submission before it is saved to the database.
- * This is a total hack, but it ensures that the correct data is saved to the database.
+ * This is a total hack, but it ensures that the correct data is saved to webform_submitted_data.
  * I don't know how else to fix it. Patches welcome!
  */
 function uc_webform_webform_submission_presave($node, &$submission) {
