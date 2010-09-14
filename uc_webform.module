@@ -16,6 +16,7 @@ function uc_webform_menu() {
     'page arguments' => array('uc_webform_submission_delete_products_form'),
     //'access callback' => This defaults to user_access
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -109,9 +110,9 @@ function uc_webform_order($op, &$arg1, $arg2) {
           uc_order_comment_save($arg1->order_id, $arg1->uid, $message, 'admin');
           
           // Add the webform submission id and webform node id to the uc_orders table
-          $data['webform_sid'] = $product->data['webform_sid'];
-          $data['webform_nid'] = $product->data['webform_nid'];
-          db_query("UPDATE {uc_orders} SET data = '%s' WHERE order_id = %d", serialize($data), $arg1->order_id);
+          //$data['webform_sid'] = $product->data['webform_sid'];
+          //$data['webform_nid'] = $product->data['webform_nid'];
+          //db_query("UPDATE {uc_orders} SET data = '%s' WHERE order_id = %d", serialize($data), $arg1->order_id);
 
           break;
         }
@@ -275,15 +276,17 @@ function uc_webform_webform_component_presave(&$component) {
 function uc_webform_webform_submission_presave($node, &$submission) {
   foreach ($node->webform['components'] as $component) {
     if ($component['type'] == 'product_list') {
-      $index = 0;
-      foreach ($submission->data[$component['cid']]['value'] as $prod_key => $prod_val) {
-        if ($prod_val == 0) {
-          unset ($submission->data[$component['cid']]['value'][$prod_key]);
-        } else {
-          $submission->data[$component['cid']]['value'][$index] = $submission->data[$component['cid']]['value'][$prod_val];
-          unset ($submission->data[$component['cid']]['value'][$prod_val]);
+      if ($component['extra']['multiple'] == 1) {  // Checkboxes
+        $index = 0;
+        foreach ($submission->data[$component['cid']]['value'] as $prod_key => $prod_val) {
+          if ($prod_val == 0) {
+            unset ($submission->data[$component['cid']]['value'][$prod_key]);
+          } else {
+            $submission->data[$component['cid']]['value'][$index] = $submission->data[$component['cid']]['value'][$prod_val];
+            unset ($submission->data[$component['cid']]['value'][$prod_val]);
+          }
+          $index++;
         }
-        $index++;
       }
     }
   }
@@ -657,16 +660,6 @@ function _webform_edit_product($component) {
     '#weight' => -1,
     '#description' => t('Please select a product.'),
     '#options' => $products,
-  );
-  $form['validation']['max_qty'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Max Quantity'),
-    '#default_value' => $component['extra']['max_qty'],
-    '#description' => t('Maximum number of products.'),
-    '#size' => 5,
-    '#maxlength' => 10,
-    '#weight' => 2,
-    '#parents' => array('extra', 'max_qty'),
   );
   $form['display']['width'] = array(
     '#type' => 'textfield',
