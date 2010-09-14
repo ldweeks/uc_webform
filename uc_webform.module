@@ -184,11 +184,8 @@ function uc_webform_webform_component_info() {
     'label' => t('Product list'),
     'description' => t('Add a list of products to your webform.'),
     'features' => array(
-      // Add content to CSV downloads. Defaults to TRUE.
       'csv' => TRUE,
-      // Show this field in e-mailed submissions. Defaults to TRUE.
       'email' => TRUE,
-      // This field may be toggled as required or not. Defaults to TRUE.
       'required' => TRUE,
     )
   );
@@ -196,11 +193,8 @@ function uc_webform_webform_component_info() {
     'label' => t('Product'),
     'description' => t('Add a single product to your webform.'),
     'features' => array(
-      // Add content to CSV downloads. Defaults to TRUE.
       'csv' => TRUE,
-      // Show this field in e-mailed submissions. Defaults to TRUE.
       'email' => TRUE,
-      // This field may be toggled as required or not. Defaults to TRUE.
       'required' => TRUE,
     )
   );
@@ -261,6 +255,41 @@ function uc_webform_webform_submission_insert($node, $submission) {
   }
 }
 
+/**
+ * Modify a Webform component before it is saved to the database.
+ *
+function uc_webform_webform_component_presave(&$component) {
+  if (isset($component['extra']['products'])) {
+    foreach ($component['extra']['products'] as $nid) {
+      $node = node_load($nid);
+      $title = $node->title;
+      $component['extra']['products'][$nid] = $title;
+    }
+  }
+} This code ensures that the product title goes into the DB. But I don't think that it is necessary.*/
+
+/**
+ * Modify a Webform submission before it is saved to the database.
+ * This is a total hack, but it ensures that the correct data is saved to the database.
+ * I don't know how else to fix it. Patches welcome!
+ */
+function uc_webform_webform_submission_presave($node, &$submission) {
+  foreach ($node->webform['components'] as $component) {
+    if ($component['type'] == 'product_list') {
+      $index = 0;
+      foreach ($submission->data[$component['cid']]['value'] as $prod_key => $prod_val) {
+        if ($prod_val == 0) {
+          unset ($submission->data[$component['cid']]['value'][$prod_key]);
+        } else {
+          $submission->data[$component['cid']]['value'][$index] = $submission->data[$component['cid']]['value'][$prod_val];
+          unset ($submission->data[$component['cid']]['value'][$prod_val]);
+        }
+        $index++;
+      }
+    }
+  }
+}
+
 /**********************************
  * Webform API Functions (not hooks)
  **********************************/
@@ -273,7 +302,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
  */
 
 /**
- * Specify the default properties of a component.
+ * Implementation of _webform_defaults_component().
  */
 function _webform_defaults_product_list() {
   return array(
@@ -285,6 +314,19 @@ function _webform_defaults_product_list() {
     'weight' => 0,
     'extra' => array(
       'description' => '',
+    ),
+  );
+}
+
+/**
+ * Module specific instance of hook_theme().
+ * Implementation of _webform_theme_component().
+ * This allows each Webform component to add information into hook_theme().
+ */
+function _webform_theme_product_list() {
+  return array(
+    'webform_display_product_list' => array(
+      'arguments' => array('element' => NULL),
     ),
   );
 }
@@ -343,7 +385,6 @@ function _webform_edit_product_list($component) {
  */
 function _webform_render_product_list($component, $value = NULL) {
 
-  dpm($component, "Product List Component");
   $products = array();
   
   foreach($component['extra']['products'] as $val) {
@@ -375,6 +416,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
       '#options' => $products,
+      //'#process' = array('webform_expand_checkboxes', 'uc_webform_expand_select_ids'),
     );
   }  
   
@@ -412,19 +454,6 @@ function _webform_display_product_list($component, $value, $format = 'html') {
     '#component' => $component,
     '#format' => $format,
     '#value' => $products,
-  );
-}
-
-/**
- * Module specific instance of hook_theme().
- *
- * This allows each Webform component to add information into hook_theme().
- */
-function _webform_theme_product_list() {
-  return array(
-    'webform_display_product_list' => array(
-      'arguments' => array('element' => NULL),
-    ),
   );
 }
 
@@ -584,7 +613,7 @@ function _uc_webform_products($component) {
  */
 
 /**
- * Specify the default properties of a component.
+ * Implementation of _webform_defaults_component().
  */
 function _webform_defaults_product() {
   return array(
@@ -709,7 +738,7 @@ function _webform_display_product($component, $value, $format = 'html') {
 
 /**
  * Module specific instance of hook_theme().
- *
+ * Implementation of _webform_theme_component().
  * This allows each Webform component to add information into hook_theme().
  */
 function _webform_theme_product() {
