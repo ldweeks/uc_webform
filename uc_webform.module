@@ -121,6 +121,11 @@ function uc_webform_order($op, &$arg1, $arg2) {
   }
 }
 
+/**
+* Implementation of hook_cart_item().
+*
+* This usage currently depends on a patch to ubercart: http://drupal.org/node/744956
+*/
 function uc_webform_cart_item($op, &$item) {
   switch ($op) {
     case 'remove':
@@ -703,9 +708,22 @@ function _webform_render_product($component, $value = NULL) {
     '#field_suffix' => $product_title,
     '#required' => $component['mandatory'],
     '#disabled' => $component['extra']['disabled'],
+    '#element_validate' => array('_webform_render_product_validate'),
   );
  
   return $element;
+}
+
+/**
+ * Validate product entry
+*/
+function _webform_render_product_validate($element, &$form_state) {
+  if (!empty($element['#value'])) {
+  	$match = preg_match('/\A[0-9]+\Z/', $element['#value']);
+    if (($match == 0) || $match == FALSE) {
+      form_error($element, t('Please enter a non-negative integer.'));
+    }
+  }
 }
 
 /**
