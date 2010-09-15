@@ -15,6 +15,12 @@ Installation
 2. Login as an administrator. Enable the module in the "Administer" -> "Site
    Building" -> "Modules"
 
+Notes
+-----
+- For this module to be of any value, you must have already created some products on your site.
+- After you install this module, you will have two more component types for a webform: 'product' and 'product list'. When you add either type of component, you will be asked to select which products you'd like to offer to those filling out the webform. The products you select will be added to your webform.
+- When a user selects a product in a webform, the product is automatically added to their cart when the form is submitted.
+
 Todo/Bugs/Feature Requests
 --------------------------
 - Include support for attributes and options.
@@ -22,9 +28,7 @@ Todo/Bugs/Feature Requests
 
 Support
 -------
-Please use the issue queue for filing bugs with this module at
-http://drupal.org/project/issues/webform
-
+Please use the issue queue for filing bugs with this module at http://drupal.org/project/issues/uc_webform
 
 Credits
 -------
