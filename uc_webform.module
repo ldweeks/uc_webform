@@ -87,9 +87,6 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
       }
       break;
   }
-  //dpm($form, "Form");
-  //dpm($form_state, "Form State");
-  //dpm($form_id, "Form ID");
 }
 
 /**********************************
@@ -856,7 +853,6 @@ function _webform_analysis_product($component, $sids = array()) {
  * Implementation of _webform_table_component().
  */
 function _webform_table_product($component, $value) {
-  //dpm($component);
   return check_plain(empty($value[0]) ? '' : $value[0]);
 }
 
