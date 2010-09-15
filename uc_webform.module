@@ -118,6 +118,22 @@ function uc_webform_order($op, &$arg1, $arg2) {
         }
       }
       break;
+
+    case 'update':
+      foreach ($arg1->products as $product) {
+        if (isset($product->data['webform_sid'])) {
+          // Find the component ID of the hidden field.
+          $result_cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $product->data['webform_nid']));
+
+          if ($result_cid) {
+            $status = 'Order #' . $arg1->order_id . ': ' . strtoupper($arg2);
+            
+            // Update the hidden Order Status field of the webform submission.
+            db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $status, $product->data['webform_nid'], $product->data['webform_sid'], $result_cid);
+          }
+        }
+      }
+      break;
   }
 }
 
@@ -297,6 +313,24 @@ function uc_webform_webform_submission_presave($node, &$submission) {
   }
 }
 
+/**
+ * Implementation of hook_webform_component_insert().
+ *
+ * Respond to a Webform component being inserted into the database.
+ */
+function uc_webform_webform_component_insert($component) {
+  if (($component['extra']['registration'] == 1) && (($component['type'] == 'product') || ($component['type'] == 'product_list'))) {
+    // Check to see whether the hidden field already exists.
+    $result = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $component['nid']));
+    
+    $extra = array('conditional_operator' => '=');
+    if (!$result) {
+      // Insert a hidden field into the webform.
+      db_query("INSERT INTO {webform_component} (nid, cid, form_key, name, type, value, extra, mandatory, weight) VALUES (%d, %d, 'order_status', 'Order Status', 'hidden', 'Did not complete checkout', '%s', 0, 100)", $component['nid'], $component['cid'] + 1, serialize($extra));
+    }
+  }
+}
+
 /**********************************
  * Webform API Functions (not hooks)
  **********************************/
@@ -374,6 +408,13 @@ function _webform_edit_product_list($component) {
     '#default_value' => $component['extra']['multiple'],
     '#description' => t('Check this option if the user is allowed to select multiple products.'),
     '#weight' => -2,
+  );
+  $form['extra']['registration'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Registration'),
+    '#default_value' => $component['extra']['registration'],
+    '#description' => t('Check this option if this component will be a part of a registration form.'),
+    '#weight' => -3,
   );
   /*$form['extra']['aslist'] = array(
     '#type' => 'checkbox',
@@ -666,6 +707,13 @@ function _webform_edit_product($component) {
     '#description' => t('Please select a product.'),
     '#options' => $products,
   );
+  $form['extra']['registration'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Registration'),
+    '#default_value' => $component['extra']['registration'],
+    '#description' => t('Check this option if this component will be a part of a registration form.'),
+    '#weight' => -3,
+  );
   $form['display']['width'] = array(
     '#type' => 'textfield',
     '#title' => t('Width'),
@@ -808,7 +856,7 @@ function _webform_analysis_product($component, $sids = array()) {
  * Implementation of _webform_table_component().
  */
 function _webform_table_product($component, $value) {
-  dpm($component);
+  //dpm($component);
   return check_plain(empty($value[0]) ? '' : $value[0]);
 }
 
