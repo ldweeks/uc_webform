@@ -23,6 +23,20 @@ function uc_webform_menu() {
 }
 
 /**
+ * Implementation of hook_theme().
+ */
+function uc_webform_theme() {
+  return array(
+    'uc_webform_products' => array(
+      'arguments' => array('products' => NULL),
+    ),
+    'uc_webform_product' => array(
+      'arguments' => array('product' => NULL),
+    ),
+  );
+}
+
+/**
  * Confirm form to delete all of the products from the cart that are associated with
  * mandatory webform submission elements.
  */
@@ -179,7 +193,7 @@ function _uc_webform_product_options() {
   // http://api.ubercart.org/api/function/uc_product_types/2
   $types = uc_product_types();
   
-  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
+  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") ORDER BY title", $types);
   
   while ($row = db_fetch_object($result)) {
     $products[$row->nid] = t("$row->title");
@@ -366,7 +380,7 @@ function _webform_edit_product_list($component) {
   $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
   
   while ($row = db_fetch_object($result)) {
-    $products[$row->nid] = $row->title;
+    $products[$row->nid] = check_plain($row->title);
   }
   
   // Most options are stored in the "extra" array, which stores any settings unique to a particular component type.
@@ -395,6 +409,16 @@ function _webform_edit_product_list($component) {
     '#description' => t('Check this option if this component will be a part of a registration form.'),
     '#weight' => -3,
   );
+  $form['extra']['currency'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Currency Symbol'),
+    '#default_value' => $component['extra']['currency'],
+    '#description' => t('Please enter your currency symbol.'),
+    '#required' => TRUE,
+    '#size' => 2,
+    '#maxlength' => 2,
+    '#weight' => 0,
+  );
   
   return $form;
 }
@@ -410,10 +434,12 @@ function _webform_render_product_list($component, $value = NULL) {
   foreach($component['extra']['products'] as $val) {
     $node = node_load($val);
     
-    $product_title = "<span>$node->title, " . t('Price: $') . round($node->sell_price, 2) . '</span>';
-    $products[$node->nid] = $product_title;
+    $product['title'] = check_plain($node->title);
+    $product['currency'] = check_plain($component['extra']['currency']);
+    $product['price'] = round($node->sell_price, 2);
+    $products[$node->nid] = $product;
   }
-  
+
   if ($component['extra']['multiple'] == 0) {
     $form_item = array(
       '#type' => 'radios',
@@ -423,7 +449,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
-      '#options' => $products,
+      '#options' => theme('uc_webform_products', $products),
     );
   }
   elseif ($component['extra']['multiple'] == 1) {
@@ -435,15 +461,29 @@ function _webform_render_product_list($component, $value = NULL) {
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
-      '#options' => $products,
+      '#options' => theme('uc_webform_products', $products),
     );
   }  
   
   if (isset($value)) {
-    $form_item['#default_value'] = filter_xss($value);
+    $form_item['#default_value'] = check_plain($value);
   }
     
   return $form_item;
+}
+
+/**
+ * Theme function for when a product is rendered in a form.
+ * 
+ */
+function theme_uc_webform_products($products) {
+
+  $output = array();
+  foreach ($products as $nid => $product) {
+    $output[$nid] = '<span>' . $product['title'] . t(', Price: ') . $product['currency'] . $product['price'] . '</span>';
+  }
+
+  return $output;
 }
 
 /**
@@ -687,6 +727,16 @@ function _webform_edit_product($component) {
     '#description' => t('Check this option if this component will be a part of a registration form.'),
     '#weight' => -3,
   );
+  $form['extra']['currency'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Currency Symbol'),
+    '#default_value' => $component['extra']['currency'],
+    '#description' => t('Please enter your currency symbol.'),
+    '#required' => TRUE,
+    '#size' => 2,
+    '#maxlength' => 2,
+    '#weight' => 0,
+  );
   $form['display']['width'] = array(
     '#type' => 'textfield',
     '#title' => t('Width'),
@@ -717,22 +767,32 @@ function _webform_edit_product($component) {
 function _webform_render_product($component, $value = NULL) {
 
   $node = node_load($component['extra']['product']);
-  $product_title = "<span>$node->title, " . t('Price: $') . round($node->sell_price, 2) . '</span>';
-  
+  $product = array('title' => check_plain($node->title), 'currency' => check_plain($component['extra']['currency']), 'price' => round($node->sell_price, 2)); 
+
   $element = array(
     '#type' => 'textfield',
     '#title' => $component['name'],
     '#weight' => $component['weight'],
     '#size' => $component['extra']['width'],
     '#description' => $component['extra']['description'],
-    '#default_value' => isset($value) ? $value[0] : $component['value'],
-    '#field_suffix' => $product_title,
+    '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
+    '#field_suffix' => theme('uc_webform_product', $product),
     '#required' => $component['mandatory'],
     '#disabled' => $component['extra']['disabled'],
     '#element_validate' => array('_webform_render_product_validate'),
   );
- 
+
   return $element;
+}
+
+/**
+ * Theme the the display of an individual product when rendered in a webform.
+*/
+function theme_uc_webform_product($product) {
+
+  $output = '<span>' . $product['title'] . t(', Price: ') . $product['currency'] . $product['price'] . '</span>';
+
+  return $output;
 }
 
 /**
