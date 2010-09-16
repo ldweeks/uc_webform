@@ -407,7 +407,7 @@ function _webform_edit_product_list($component) {
     '#title' => t('Registration'),
     '#default_value' => $component['extra']['registration'],
     '#description' => t('Check this option if this component will be a part of a registration form.'),
-    '#weight' => -3,
+    '#weight' => -2,
   );
   $form['extra']['currency'] = array(
     '#type' => 'textfield',
@@ -417,7 +417,7 @@ function _webform_edit_product_list($component) {
     '#required' => TRUE,
     '#size' => 2,
     '#maxlength' => 2,
-    '#weight' => 0,
+    '#weight' => -3,
   );
   
   return $form;
@@ -716,7 +716,7 @@ function _webform_edit_product($component) {
     '#type' => 'select', 
     '#title' => t('Product'), 
     '#default_value' => $component['extra']['product'], 
-    '#weight' => -1,
+    '#weight' => -3,
     '#description' => t('Please select a product.'),
     '#options' => $products,
   );
@@ -725,7 +725,7 @@ function _webform_edit_product($component) {
     '#title' => t('Registration'),
     '#default_value' => $component['extra']['registration'],
     '#description' => t('Check this option if this component will be a part of a registration form.'),
-    '#weight' => -3,
+    '#weight' => -2,
   );
   $form['extra']['currency'] = array(
     '#type' => 'textfield',
@@ -735,7 +735,7 @@ function _webform_edit_product($component) {
     '#required' => TRUE,
     '#size' => 2,
     '#maxlength' => 2,
-    '#weight' => 0,
+    '#weight' => -2,
   );
   $form['display']['width'] = array(
     '#type' => 'textfield',
