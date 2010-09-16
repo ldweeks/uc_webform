@@ -37,7 +37,7 @@ function uc_webform_submission_delete_products_form() {
 
 function uc_webform_submission_delete_products_form_submit($form, &$form_state) {
 
-  //Remove all items from the current webform submission from the cart
+  // Remove all items from the current webform submission from the cart
   $cart_items = uc_cart_get_contents();
 
   foreach ($cart_items as $cart_item) {
@@ -67,7 +67,6 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
 
           if (($data['webform_ctype'] == 'product_list') || ($data['webform_ctype'] == 'product')) {
             // Users may not remove webform products from their cart without first modify the webform.
-            //$form['items'][$count]['remove']['#disabled'] = true;
             $uc_webform_exists = true;
             $webform_nid = $data['webform_nid'];
 
@@ -101,7 +100,7 @@ function uc_webform_order($op, &$arg1, $arg2) {
     case 'submit':
       foreach ($arg1->products as $product) {
         if (isset($product->data['webform_sid'])) {
-          $message = l("View form submission", 'node/' . $product->data['webform_nid'] . '/submission/' . $product->data['webform_sid']);
+          $message = l(t('View form submission'), 'node/' . $product->data['webform_nid'] . '/submission/' . $product->data['webform_sid']);
           
           // Add an admin comment that links to the webform submission.
           uc_order_comment_save($arg1->order_id, $arg1->uid, $message, 'admin');
@@ -123,7 +122,7 @@ function uc_webform_order($op, &$arg1, $arg2) {
           $result_cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $product->data['webform_nid']));
 
           if ($result_cid) {
-            $status = 'Order #' . $arg1->order_id . ': ' . strtoupper($arg2);
+            $status = t('Order #') . $arg1->order_id . ': ' . strtoupper($arg2);
             
             // Update the hidden Order Status field of the webform submission.
             db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $status, $product->data['webform_nid'], $product->data['webform_sid'], $result_cid);
@@ -261,7 +260,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
           $key = $component['cid'];
           $qty = (integer) $submission->data[$key]['value'][0];
   
-          $component_data = unserialize(db_result(db_query("SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d", $component['cid'], $node->nid)));
+          $component_data = unserialize(db_result(db_query('SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d', $component['cid'], $node->nid)));
           $product = $component_data['product'];
   
           if ($qty > 0) {
@@ -274,20 +273,8 @@ function uc_webform_webform_submission_insert($node, $submission) {
 }
 
 /**
- * Modify a Webform component before it is saved to the database.
- *
-function uc_webform_webform_component_presave(&$component) {
-  if (isset($component['extra']['products'])) {
-    foreach ($component['extra']['products'] as $nid) {
-      $node = node_load($nid);
-      $title = $node->title;
-      $component['extra']['products'][$nid] = $title;
-    }
-  }
-} This code ensures that the product title goes into the DB. But I don't think that it is necessary.*/
-
-/**
  * Modify a Webform submission before it is saved to the database.
+ *
  * This is a total hack, but it ensures that the correct data is saved to webform_submitted_data.
  * I don't know how else to fix it. Patches welcome!
  */
@@ -374,11 +361,6 @@ function _webform_theme_product_list() {
  */
 function _webform_edit_product_list($component) {
   $form = array();
-
-  // Disabling the description if not wanted.
-  $form['description'] = array();
-  
-  // http://api.lullabot.com/uc_product_types
   $types = uc_product_types();
   
   $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
@@ -413,13 +395,6 @@ function _webform_edit_product_list($component) {
     '#description' => t('Check this option if this component will be a part of a registration form.'),
     '#weight' => -3,
   );
-  /*$form['extra']['aslist'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Listbox'),
-    '#return_value' => 'Y',
-    '#default_value' => $component['extra']['aslist'],
-    '#description' => t('Check this option if you want the select component to be of listbox type instead of radiobuttons or checkboxes.'),
-  );*/
   
   return $form;
 }
@@ -435,8 +410,8 @@ function _webform_render_product_list($component, $value = NULL) {
   foreach($component['extra']['products'] as $val) {
     $node = node_load($val);
     
-    $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
-    $products[$node->nid] = t($product_title);
+    $product_title = "<span>$node->title, " . t('Price: $') . round($node->sell_price, 2) . '</span>';
+    $products[$node->nid] = $product_title;
   }
   
   if ($component['extra']['multiple'] == 0) {
@@ -461,12 +436,11 @@ function _webform_render_product_list($component, $value = NULL) {
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
       '#options' => $products,
-      //'#process' = array('webform_expand_checkboxes', 'uc_webform_expand_select_ids'),
     );
   }  
   
   if (isset($value)) {
-    $form_item['#default_value'] = $value;
+    $form_item['#default_value'] = filter_xss($value);
   }
     
   return $form_item;
@@ -484,8 +458,8 @@ function _webform_display_product_list($component, $value, $format = 'html') {
     foreach($value as $product) {
       if($product != 0) {
         $node = node_load($product);
-        $product_title = t("$node->title") . ', Price: $' . round($node->sell_price, 2);
-        array_push($products, t($product_title));
+        $product_title = "$node->title, " . t('Price: $') . round($node->sell_price, 2);
+        array_push($products, $product_title);
       }
     }
   }
@@ -516,6 +490,8 @@ function theme_webform_display_product_list($element) {
 
 /**
  * Calculate and returns statistics about results for this component.
+ * 
+ * This is mostly useless right now because it doesn't filter for completed checkouts.
  */
 function _webform_analysis_product_list($component, $sids = array(), $single = FALSE) {
 
@@ -741,7 +717,7 @@ function _webform_edit_product($component) {
 function _webform_render_product($component, $value = NULL) {
 
   $node = node_load($component['extra']['product']);
-  $product_title = '<span>' . t("$node->title") . ', Price: $' . round($node->sell_price, 2) . '</span>';
+  $product_title = "<span>$node->title, " . t('Price: $') . round($node->sell_price, 2) . '</span>';
   
   $element = array(
     '#type' => 'textfield',
@@ -764,7 +740,7 @@ function _webform_render_product($component, $value = NULL) {
 */
 function _webform_render_product_validate($element, &$form_state) {
   if (!empty($element['#value'])) {
-  	$match = preg_match('/\A[0-9]+\Z/', $element['#value']);
+    $match = preg_match('/\A[0-9]+\Z/', $element['#value']);
     if (($match == 0) || $match == FALSE) {
       form_error($element, t('Please enter a non-negative integer.'));
     }
@@ -777,7 +753,7 @@ function _webform_render_product_validate($element, &$form_state) {
 function _webform_display_product($component, $value, $format = 'html') {
 
   $node = node_load($component['extra']['product']);
-  $product_info = array("Name: $node->title", "Sku: $node->model", "Quantity: $value[0]");
+  $product_info = array(t('Name: ') . $node->title, t('Sku: ') . $node->model, t('Quantity: ') . $value[0]);
 
   return array(
     '#title' => $component['name'],
@@ -813,9 +789,8 @@ function theme_webform_display_product($element) {
 
 /**
  * Implementation of _webform_analysis_component().
- * This is totally broken. It should limit the analysis to webform submissions
- * that ended with a completed checkout. Instead, it tallies all submissions.
  *
+ * This is mostly useless right now because it doesn't filter for completed checkouts.
  */
 function _webform_analysis_product($component, $sids = array()) {
   
@@ -824,7 +799,7 @@ function _webform_analysis_product($component, $sids = array()) {
   $nonblanks = 0;
   $submissions = 0;
   $total = 0;
-  $min = 999999; // This is retarded, but it's late.
+  $min = 999999; // This seems retarded, but I don't know how else to do it.
   $max = 0;
 
   while ($data = db_fetch_array($results)) {
@@ -865,7 +840,7 @@ function _webform_csv_headers_product($component, $export_options) {
 
   $header[0] = '';
   $header[1] = $component['name'];
-  $header[2] = $node->model . ' Quantity';
+  $header[2] = $node->model . t(' Quantity');
   return $header;
 }
 

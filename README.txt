@@ -26,6 +26,7 @@ Todo/Bugs/Feature Requests
 - Remove dependency on Ubercart patch.
 - Include support for attributes and options.
 - Include support for stock levels.
+- Add better support for the analysis tab.
 
 Support
 -------
