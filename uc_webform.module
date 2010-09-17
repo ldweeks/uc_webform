@@ -70,21 +70,25 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
 
   switch ($form_id) {
     case 'uc_cart_view_form':
-      $uc_webform_exists = false;
       $count = 0;
       while (isset($form['items'][$count])) {
         if (isset($form['items'][$count]['data']['#value'])) {
           $data = unserialize($form['items'][$count]['data']['#value']);
 
-          // Check to see if the product was a mandatory field in the webform submission.
-          $mandatory = db_result(db_query("SELECT mandatory FROM {webform_component} WHERE nid = %d AND cid = %d", $data['webform_nid'], $data['webform_cid']));
-
           if (($data['webform_ctype'] == 'product_list') || ($data['webform_ctype'] == 'product')) {
-            // Users may not remove webform products from their cart without first modify the webform.
-            $uc_webform_exists = true;
-            $webform_nid = $data['webform_nid'];
+            // Check to see if the product was a mandatory field in the webform submission.
+            $component_info = db_fetch_array(db_query("SELECT mandatory, extra FROM {webform_component} WHERE nid = %d AND cid = %d", $data['webform_nid'], $data['webform_cid']));
 
-            if ($mandatory == 1) {
+            $component_info['extra'] = unserialize($component_info['extra']);
+
+            // Users may not edit the quantity of a product if the quantity was disabled in the webform.
+            if ($component_info['extra']['disabled'] == 1) {
+              $form['items'][$count]['qty']['#disabled'] = true;
+              $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
+            }
+
+            // Force the user to remove *all* webform-related products from the cart if they want to remove *one* mandatory webform-related product from the cart.
+            if ($component_info['mandatory'] == 1) {
               $form['items'][$count]['remove']['#type'] = 'markup';
               $form['items'][$count]['remove']['#value'] = l(t('Delete'), "cart/delete-form", array('query' => drupal_get_destination()));
             }
@@ -781,6 +785,11 @@ function _webform_render_product($component, $value = NULL) {
     '#disabled' => $component['extra']['disabled'],
     '#element_validate' => array('_webform_render_product_validate'),
   );
+
+  // This is so that products whose quantity is disabled are added to the cart correctly.
+  if ($component['extra']['disabled']) {
+    $element['#value'] = isset($value) ? check_plain($value[0]) : check_plain($component['value']);
+  }
 
   return $element;
 }

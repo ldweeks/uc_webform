@@ -1,6 +1,6 @@
 Description
 ------------
-This module integrates two other modules: webform and ubercart. It allows you sell products directly from your webforms. It is particularly suited to be used as a registration system.
+This module integrates two other modules: webform and ubercart. It allows you sell products directly from your webforms. It is particularly suited to be used as part of a registration system.
 
 Requirements
 ------------
