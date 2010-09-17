@@ -187,7 +187,6 @@ function uc_webform_webform_components_form($form) {
       // Add each component to a table row.
       // Alteration: I've added this check to remove the 'Edit', 'Clone', 'Delete' links when necessary.
       $registration = 0;
-      //webform_node = $form['#node'];
       foreach ($form['#node']->webform['components'] as $comp) {
         $registration = isset($comp['extra']['registration']) ? $comp['extra']['registration'] : 0;
         if ($registration == 1) {
