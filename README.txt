@@ -20,7 +20,9 @@ Notes
 - For this module to be of any value, you must have already created some products on your site.
 - After you install this module, you will have two more component types for a webform: 'product' and 'product list'. When you add either type of component, you will be asked to select which products you'd like to offer to those filling out the webform. The products you select will be added to your webform.
 - When a user selects a product in a webform, the product is automatically added to their cart when the form is submitted.
-- If you add a 'product' or 'product list' component to your webform, you have the option of specifying it as part of a registration form on the component edit page. If it is part of a registration form, a hidden field will be automatically created for you.
+- If you add a 'product' or 'product list' component to your webform, you have the option of specifying it as part of a registration form on the component edit page. If it is part of a registration form, a hidden field will be automatically created for you to track the status of the registration. The status is based on Ubercart order statuses.
+- You cannot modify or delete the hidden 'Order Status' field on a webform until you have unchecked the 'registration' option on all the products within your form. When you do that, the links to 'Edit', 'Clone' or 'Delete' the hidden field will appear.
+- 
 
 Todo/Bugs/Feature Requests
 --------------------------
