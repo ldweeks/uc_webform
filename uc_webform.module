@@ -67,7 +67,9 @@ function uc_webform_submission_delete_products_form_submit($form, &$form_state) 
 * Implementation of hook_form_alter().
 */
 function uc_webform_form_alter(&$form, &$form_state, $form_id) {
-
+  dpm($form_id, "Form ID");
+  dpm($form, "Form");
+  dpm($form_state, "Form State");
   switch ($form_id) {
     case 'uc_cart_view_form':
       $count = 0;
@@ -102,6 +104,8 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
         }
         $count++;
       }
+      break;
+    case 'webform_components_form':
       break;
   }
 }
@@ -329,6 +333,31 @@ function uc_webform_webform_component_insert($component) {
     if (!$result) {
       // Insert a hidden field into the webform.
       db_query("INSERT INTO {webform_component} (nid, cid, form_key, name, type, value, extra, mandatory, weight) VALUES (%d, %d, 'order_status', 'Order Status', 'hidden', 'Did not complete checkout', '%s', 0, 100)", $component['nid'], $component['cid'] + 1, serialize($extra));
+    }
+  }
+}
+
+/**
+ * Respond to a Webform component being updated in the database.
+ */
+function uc_webform_webform_component_update($component) {
+  if (($component['extra']['registration'] == 1) && (($component['type'] == 'product') || ($component['type'] == 'product_list'))) {
+
+    // We need to check to see whether the hidden field already exists.
+    // We also need to find the max component id in the webform.
+    $results = db_query("SELECT cid, form_key FROM {webform_component} WHERE nid = %d", $component['nid']);
+  
+    $components_info['cids'] = array();
+    $components_info['form_keys'] = array();
+    while ($result = db_fetch_array($results)) {
+      array_push($components_info['cids'], $result['cid']);
+      array_push($components_info['form_keys'], $result['form_key']);
+    }
+
+    $extra = array('conditional_operator' => '=');
+    if (!in_array('order_status', $components_info['form_keys'])) {
+      // Insert a hidden field into the webform.
+      db_query("INSERT INTO {webform_component} (nid, cid, form_key, name, type, value, extra, mandatory, weight) VALUES (%d, %d, 'order_status', 'Order Status', 'hidden', 'Did not complete checkout', '%s', 0, 100)", $component['nid'], max($components_info['cids']) + 1, serialize($extra));
     }
   }
 }
