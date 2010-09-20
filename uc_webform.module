@@ -1,8 +1,8 @@
 <?php
 
-/**********************************
+/**
  * Drupal Core Hook Functions
- **********************************/
+ */
 
 /**
  * Implementation of hook_menu().
@@ -64,8 +64,8 @@ function uc_webform_submission_delete_products_form_submit($form, &$form_state) 
 }
 
 /**
-* Implementation of hook_form_alter().
-*/
+ * Implementation of hook_form_alter().
+ */
 function uc_webform_form_alter(&$form, &$form_state, $form_id) {
   switch ($form_id) {
     case 'uc_cart_view_form':
@@ -82,7 +82,7 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
 
             // Users may not edit the quantity of a product if the quantity was disabled in the webform.
             if ($component_info['extra']['disabled'] == 1) {
-              $form['items'][$count]['qty']['#disabled'] = true;
+              $form['items'][$count]['qty']['#disabled'] = TRUE;
               $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
             }
 
@@ -91,10 +91,10 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
               $form['items'][$count]['remove']['#type'] = 'markup';
               $form['items'][$count]['remove']['#value'] = l(t('Delete'), "cart/delete-form", array('query' => drupal_get_destination()));
             }
-            
+
             if ($data['webform_ctype'] == 'product_list') {
               // Users may not edit the quantity of a product_list webform product.
-              $form['items'][$count]['qty']['#disabled'] = true;
+              $form['items'][$count]['qty']['#disabled'] = TRUE;
               $form['items'][$count]['qty']['#value'] = 1; // If you don't specicfy #value here, all products will be removed if any product is removed.
             }
           }
@@ -106,11 +106,11 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
-* Implementation of hook_theme_registry_alter().
-* 
-* There is a good article about this here: 
-* http://www.lullabot.com/articles/overriding-theme-functions-in-modules
-*/
+ * Implementation of hook_theme_registry_alter().
+ *
+ * There is a good article about this here:
+ * http://www.lullabot.com/articles/overriding-theme-functions-in-modules
+ */
 function uc_webform_theme_registry_alter(&$theme_registry) {
   if (!empty($theme_registry['webform_components_form'])) {
     $theme_registry['webform_components_form']['function'] = 'uc_webform_webform_components_form';
@@ -118,11 +118,10 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
 }
 
 /**
-* Override 'theme_webform_components_form($form)', found in webform.components.inc
-* Remove the 'Clone', 'Edit' and 'Delete' links from the hidden Order Status component if
-* it is part of a registration form.
-* 
-*/
+ * Override 'theme_webform_components_form($form)', found in webform.components.inc
+ * Remove the 'Clone', 'Edit' and 'Delete' links from the hidden Order Status component if
+ * it is part of a registration form.
+ */
 function uc_webform_webform_components_form($form) {
   // Add CSS to display submission info. Don't preprocess because this CSS file is used rarely.
   drupal_add_css(drupal_get_path('module', 'webform') . '/css/webform-admin.css', 'theme', 'all', FALSE);
@@ -201,11 +200,12 @@ function uc_webform_webform_components_form($form) {
           ($component['value'] == '') ? '-' : $component['value'],
           drupal_render($form['components'][$cid]['mandatory']),
           drupal_render($form['components'][$cid]['cid']) . drupal_render($form['components'][$cid]['pid']) . drupal_render($form['components'][$cid]['weight']),
-          t('-'),
-          t('-'),
-          t('-'),
+          '-',
+          '-',
+          '-',
         );
-      } else {
+      }
+      else {
         $row_data = array(
           $indents . filter_xss($component['name']),
           t($component['type']),
@@ -259,23 +259,23 @@ function uc_webform_webform_components_form($form) {
   return $output;
 }
 
-/**********************************
+/**
  * Ubercart Hook Functions
- **********************************/
+ */
 
 /**
-* Implementation of hook_order().
-*/
+ * Implementation of hook_order().
+ */
 function uc_webform_order($op, &$arg1, $arg2) {
   switch ($op) {
     case 'submit':
       foreach ($arg1->products as $product) {
         if (isset($product->data['webform_sid'])) {
           $message = l(t('View form submission'), 'node/' . $product->data['webform_nid'] . '/submission/' . $product->data['webform_sid']);
-          
+
           // Add an admin comment that links to the webform submission.
           uc_order_comment_save($arg1->order_id, $arg1->uid, $message, 'admin');
-          
+
           // Add the webform submission id and webform node id to the uc_orders table
           $data['webform_sid'] = $product->data['webform_sid'];
           $data['webform_nid'] = $product->data['webform_nid'];
@@ -293,8 +293,8 @@ function uc_webform_order($op, &$arg1, $arg2) {
           $result_cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $product->data['webform_nid']));
 
           if ($result_cid) {
-            $status = t('Order #') . $arg1->order_id . ': ' . strtoupper($arg2);
-            
+            $status = t('Order #') . $arg1->order_id . ': ' . drupal_strtoupper($arg2);
+
             // Update the hidden Order Status field of the webform submission.
             db_query("UPDATE {webform_submitted_data} SET data = '%s' WHERE nid = %d AND sid = %d AND cid = %d", $status, $product->data['webform_nid'], $product->data['webform_sid'], $result_cid);
           }
@@ -305,26 +305,27 @@ function uc_webform_order($op, &$arg1, $arg2) {
 }
 
 /**
-* Implementation of hook_cart_item().
-*
-* This usage currently depends on a patch to ubercart: http://drupal.org/node/744956
-*/
+ * Implementation of hook_cart_item().
+ *
+ * This usage currently depends on a patch to ubercart: http://drupal.org/node/744956
+ */
 function uc_webform_cart_item($op, &$item) {
   switch ($op) {
     case 'remove':
       $data = unserialize($item->data);
       if ($data['webform_ctype'] == 'product_list') {
         db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND data = '%s'", $data['webform_nid'], $data['webform_sid'], $item->nid);
-      } elseif ($data['webform_ctype'] == 'product') {
+      }
+      elseif ($data['webform_ctype'] == 'product') {
         db_query("DELETE FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']);
       }
       break;
   }
 }
 
-/**********************************
+/**
  * Webform Hook Functions
- **********************************/
+ */
 
 /**
  * Define callbacks that can be used as select list options.
@@ -344,27 +345,27 @@ function uc_webfom_webform_select_options_info() {
  * Option list containing products.
  */
 function _uc_webform_product_options() {
-  
+
   $products = array();
-  
+
   // http://api.ubercart.org/api/function/uc_product_types/2
   $types = uc_product_types();
-  
+
   $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") ORDER BY title", $types);
-  
+
   while ($row = db_fetch_object($result)) {
     $products[$row->nid] = t("$row->title");
   }
-  
+
   return $products;
 }
 
 /**
  * Define components to Webform.
- * 
+ *
  * Form more information: http://drupal.org/node/886014
  */
- 
+
 function uc_webform_webform_component_info() {
   $components = array();
 
@@ -386,7 +387,7 @@ function uc_webform_webform_component_info() {
       'required' => TRUE,
     )
   );
-  
+
   return $components;
 }
 
@@ -400,7 +401,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
   // allow the form to be submitted without incident.
   foreach ($node->webform['components'] as $component) {
     if (($component['type'] == 'product_list') || ($component['type'] == 'product')) {
-      $remove = true;
+      $remove = TRUE;
       break;
     }
   }
@@ -408,9 +409,9 @@ function uc_webform_webform_submission_insert($node, $submission) {
   if ($remove) {
     // Remove items from previous webform submissions from the cart
     $cart_items = uc_cart_get_contents();
-  
+
     foreach ($cart_items as $cart_item) {
-      if(isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
+      if (isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
         uc_cart_remove_item($cart_item->nid, $cart_item->cart_id, $cart_item->data);
       }
     }
@@ -426,14 +427,15 @@ function uc_webform_webform_submission_insert($node, $submission) {
             }
           }
         }
-      } elseif ($component['type'] == 'product') {
+      }
+      elseif ($component['type'] == 'product') {
         if (array_key_exists($component['cid'], $submission->data)) {
           $key = $component['cid'];
           $qty = (integer) $submission->data[$key]['value'][0];
-  
+
           $component_data = unserialize(db_result(db_query('SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d', $component['cid'], $node->nid)));
           $product = $component_data['product'];
-  
+
           if ($qty > 0) {
             uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
           }
@@ -456,10 +458,11 @@ function uc_webform_webform_submission_presave($node, &$submission) {
         $index = 0;
         foreach ($submission->data[$component['cid']]['value'] as $prod_key => $prod_val) {
           if ($prod_val == 0) {
-            unset ($submission->data[$component['cid']]['value'][$prod_key]);
-          } else {
+            unset($submission->data[$component['cid']]['value'][$prod_key]);
+          }
+          else {
             $submission->data[$component['cid']]['value'][$index] = $submission->data[$component['cid']]['value'][$prod_val];
-            unset ($submission->data[$component['cid']]['value'][$prod_val]);
+            unset($submission->data[$component['cid']]['value'][$prod_val]);
           }
           $index++;
         }
@@ -477,7 +480,7 @@ function uc_webform_webform_component_insert($component) {
   if (($component['extra']['registration'] == 1) && (($component['type'] == 'product') || ($component['type'] == 'product_list'))) {
     // Check to see whether the hidden field already exists.
     $result = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $component['nid']));
-    
+
     $extra = array('conditional_operator' => '=');
     if (!$result) {
       // Insert a hidden field into the webform.
@@ -495,7 +498,7 @@ function uc_webform_webform_component_update($component) {
     // We need to check to see whether the hidden field already exists.
     // We also need to find the max component id in the webform.
     $results = db_query("SELECT cid, form_key FROM {webform_component} WHERE nid = %d", $component['nid']);
-  
+
     $components_info['cids'] = array();
     $components_info['form_keys'] = array();
     while ($result = db_fetch_array($results)) {
@@ -511,12 +514,12 @@ function uc_webform_webform_component_update($component) {
   }
 }
 
-/**********************************
+/**
  * Webform API Functions (not hooks)
- **********************************/
+ */
 
 /**
- * I define two new components: 'product_list', modeled heavily after the 
+ * I define two new components: 'product_list', modeled heavily after the
  * 'select' component, and 'product', which is modeled after 'textfield'.
  *
  * Product List Component
@@ -540,7 +543,8 @@ function _webform_defaults_product_list() {
 }
 
 /**
- * Module specific instance of hook_theme().
+ * Implementation of hook_theme().
+ * This implementation is module-specfic, though.
  * Implementation of _webform_theme_component().
  * This allows each Webform component to add information into hook_theme().
  */
@@ -558,13 +562,13 @@ function _webform_theme_product_list() {
 function _webform_edit_product_list($component) {
   $form = array();
   $types = uc_product_types();
-  
+
   $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
-  
+
   while ($row = db_fetch_object($result)) {
     $products[$row->nid] = check_plain($row->title);
   }
-  
+
   // Most options are stored in the "extra" array, which stores any settings unique to a particular component type.
   $form['extra']['products'] = array(
     '#type' => 'select',
@@ -601,7 +605,7 @@ function _webform_edit_product_list($component) {
     '#maxlength' => 2,
     '#weight' => -3,
   );
-  
+
   return $form;
 }
 
@@ -612,10 +616,10 @@ function _webform_edit_product_list($component) {
 function _webform_render_product_list($component, $value = NULL) {
 
   $products = array();
-  
-  foreach($component['extra']['products'] as $val) {
+
+  foreach ($component['extra']['products'] as $val) {
     $node = node_load($val);
-    
+
     $product['title'] = check_plain($node->title);
     $product['currency'] = check_plain($component['extra']['currency']);
     $product['price'] = round($node->sell_price, 2);
@@ -645,24 +649,24 @@ function _webform_render_product_list($component, $value = NULL) {
       '#required' => $component['mandatory'],
       '#options' => theme('uc_webform_products', $products),
     );
-  }  
-  
+  }
+
   if (isset($value)) {
     $form_item['#default_value'] = check_plain($value);
   }
-    
+
   return $form_item;
 }
 
 /**
  * Theme function for when a product is rendered in a form.
- * 
+ *
  */
 function theme_uc_webform_products($products) {
 
   $output = array();
   foreach ($products as $nid => $product) {
-    $output[$nid] = '<span>' . $product['title'] . t(', Price: ') . $product['currency'] . $product['price'] . '</span>';
+    $output[$nid] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['currency'] . $product['price'] . '</span>';
   }
 
   return $output;
@@ -670,15 +674,15 @@ function theme_uc_webform_products($products) {
 
 /**
  * Display the result of a submission for a component.
- * 
+ *
  */
 function _webform_display_product_list($component, $value, $format = 'html') {
 
   $products = array();
-  
+
   if (isset($value)) {
-    foreach($value as $product) {
-      if($product != 0) {
+    foreach ($value as $product) {
+      if ($product != 0) {
         $node = node_load($product);
         $product_title = "$node->title, " . t('Price: $') . round($node->sell_price, 2);
         array_push($products, $product_title);
@@ -712,7 +716,7 @@ function theme_webform_display_product_list($element) {
 
 /**
  * Calculate and returns statistics about results for this component.
- * 
+ *
  * This is mostly useless right now because it doesn't filter for completed checkouts.
  */
 function _webform_analysis_product_list($component, $sids = array(), $single = FALSE) {
@@ -765,16 +769,16 @@ function _webform_analysis_product_list($component, $sids = array(), $single = F
  * Return the result of a component value for display in a table.
  */
 function _webform_table_product_list($component, $value) {
-  
+
   $results = "";
 
   if (isset($value)) {
-    foreach($value as $product) {
+    foreach ($value as $product) {
       $node = node_load($product);
-      $results .= "$node->model<br>";
+      $results .= "$node->model<br />";
     }
   }
- 
+
   return $results;
 }
 
@@ -794,7 +798,7 @@ function _webform_csv_headers_product_list($component, $export_options) {
     $headers[0][] = '';
     $headers[1][] = $component['name'];
 
-    foreach ($options as $key => $value) {      
+    foreach ($options as $key => $value) {
       $headers[2][] = $value;
     }
   }
@@ -842,7 +846,7 @@ function _uc_webform_products($component) {
   $options = array();
   $count = 0;
 
-  foreach ($component['extra']['products'] as $product) {      
+  foreach ($component['extra']['products'] as $product) {
     $node = node_load($product);
     $options["$node->nid"] = "$node->model";
     $count++;
@@ -895,9 +899,9 @@ function _webform_edit_product($component) {
     '#weight' => 0,
   );
   $form['extra']['product'] = array(
-    '#type' => 'select', 
-    '#title' => t('Product'), 
-    '#default_value' => $component['extra']['product'], 
+    '#type' => 'select',
+    '#title' => t('Product'),
+    '#default_value' => $component['extra']['product'],
     '#weight' => -3,
     '#description' => t('Please select a product.'),
     '#options' => $products,
@@ -944,12 +948,11 @@ function _webform_edit_product($component) {
 
 /**
  * Render a Webform component to be part of a form.
- *
  */
 function _webform_render_product($component, $value = NULL) {
 
   $node = node_load($component['extra']['product']);
-  $product = array('title' => check_plain($node->title), 'currency' => check_plain($component['extra']['currency']), 'price' => round($node->sell_price, 2)); 
+  $product = array('title' => check_plain($node->title), 'currency' => check_plain($component['extra']['currency']), 'price' => round($node->sell_price, 2));
 
   $element = array(
     '#type' => 'textfield',
@@ -974,17 +977,17 @@ function _webform_render_product($component, $value = NULL) {
 
 /**
  * Theme the the display of an individual product when rendered in a webform.
-*/
+ */
 function theme_uc_webform_product($product) {
 
-  $output = '<span>' . $product['title'] . t(', Price: ') . $product['currency'] . $product['price'] . '</span>';
+  $output = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['currency'] . $product['price'] . '</span>';
 
   return $output;
 }
 
 /**
  * Validate product entry
-*/
+ */
 function _webform_render_product_validate($element, &$form_state) {
   if (!empty($element['#value'])) {
     $match = preg_match('/\A[0-9]+\Z/', $element['#value']);
@@ -1000,7 +1003,7 @@ function _webform_render_product_validate($element, &$form_state) {
 function _webform_display_product($component, $value, $format = 'html') {
 
   $node = node_load($component['extra']['product']);
-  $product_info = array(t('Name: ') . $node->title, t('Sku: ') . $node->model, t('Quantity: ') . $value[0]);
+  $product_info = array(t('Name:') . ' ' . $node->title, t('Sku:') . ' ' . $node->model, t('Quantity:') . ' ' . $value[0]);
 
   return array(
     '#title' => $component['name'],
@@ -1015,7 +1018,8 @@ function _webform_display_product($component, $value, $format = 'html') {
 }
 
 /**
- * Module specific instance of hook_theme().
+ * Implementation of hook_theme().
+ * Module-specific
  * Implementation of _webform_theme_component().
  * This allows each Webform component to add information into hook_theme().
  */
@@ -1040,7 +1044,7 @@ function theme_webform_display_product($element) {
  * This is mostly useless right now because it doesn't filter for completed checkouts.
  */
 function _webform_analysis_product($component, $sids = array()) {
-  
+
   $results = db_query("SELECT data FROM {webform_submitted_data} WHERE cid = %d", $component['cid']);
 
   $nonblanks = 0;
@@ -1056,7 +1060,8 @@ function _webform_analysis_product($component, $sids = array()) {
       $total += $num;
       if ($num < $min) {
         $min = $num;
-      } elseif ($num > $max) {
+      }
+      elseif ($num > $max) {
         $max = $num;
       }
     }
@@ -1087,7 +1092,7 @@ function _webform_csv_headers_product($component, $export_options) {
 
   $header[0] = '';
   $header[1] = $component['name'];
-  $header[2] = $node->model . t(' Quantity');
+  $header[2] = $node->model . ' ' . t('Quantity');
   return $header;
 }
 
