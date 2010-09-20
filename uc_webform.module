@@ -940,6 +940,7 @@ function _webform_render_product($component, $value = NULL) {
     '#size' => $component['extra']['width'],
     '#description' => $component['extra']['description'],
     '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
+    '#field_prefix' => t('Quantity: '),
     '#field_suffix' => theme('uc_webform_product', $product),
     '#required' => $component['mandatory'],
     '#disabled' => $component['extra']['disabled'],
