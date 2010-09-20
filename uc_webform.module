@@ -595,16 +595,6 @@ function _webform_edit_product_list($component) {
     '#description' => t('Check this option if this component will be a part of a registration form.'),
     '#weight' => -2,
   );
-  $form['extra']['currency'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Currency Symbol'),
-    '#default_value' => $component['extra']['currency'],
-    '#description' => t('Please enter your currency symbol.'),
-    '#required' => TRUE,
-    '#size' => 2,
-    '#maxlength' => 2,
-    '#weight' => -3,
-  );
 
   return $form;
 }
@@ -621,7 +611,6 @@ function _webform_render_product_list($component, $value = NULL) {
     $node = node_load($val);
 
     $product['title'] = check_plain($node->title);
-    $product['currency'] = check_plain($component['extra']['currency']);
     $product['price'] = round($node->sell_price, 2);
     $products[$node->nid] = $product;
   }
@@ -666,7 +655,7 @@ function theme_uc_webform_products($products) {
 
   $output = array();
   foreach ($products as $nid => $product) {
-    $output[$nid] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['currency'] . $product['price'] . '</span>';
+    $output[$nid] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . $product['price'] . '</span>';
   }
 
   return $output;
@@ -913,16 +902,6 @@ function _webform_edit_product($component) {
     '#description' => t('Check this option if this component will be a part of a registration form.'),
     '#weight' => -2,
   );
-  $form['extra']['currency'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Currency Symbol'),
-    '#default_value' => $component['extra']['currency'],
-    '#description' => t('Please enter your currency symbol.'),
-    '#required' => TRUE,
-    '#size' => 2,
-    '#maxlength' => 2,
-    '#weight' => -2,
-  );
   $form['display']['width'] = array(
     '#type' => 'textfield',
     '#title' => t('Width'),
@@ -952,7 +931,7 @@ function _webform_edit_product($component) {
 function _webform_render_product($component, $value = NULL) {
 
   $node = node_load($component['extra']['product']);
-  $product = array('title' => check_plain($node->title), 'currency' => check_plain($component['extra']['currency']), 'price' => round($node->sell_price, 2));
+  $product = array('title' => check_plain($node->title), 'price' => round($node->sell_price, 2));
 
   $element = array(
     '#type' => 'textfield',
@@ -980,7 +959,7 @@ function _webform_render_product($component, $value = NULL) {
  */
 function theme_uc_webform_product($product) {
 
-  $output = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['currency'] . $product['price'] . '</span>';
+  $output = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . $product['price'] . '</span>';
 
   return $output;
 }
