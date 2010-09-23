@@ -105,7 +105,7 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
             // Users may not edit the quantity of a product if the quantity was disabled in the webform.
             if ($component_info['extra']['disabled'] == 1) {
               $form['items'][$count]['qty']['#disabled'] = TRUE;
-              $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
+              $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d AND no = 2", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
             }
 
             // Force the user to remove *all* webform-related products from the cart if they want to remove *one* mandatory webform-related product from the cart.
@@ -140,7 +140,9 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
 }
 
 /**
- * Override 'theme_webform_components_form($form)', found in webform.components.inc
+ * Override 'theme_webform_components_form($form)', found in webform.components.inc.
+ * This function will need to be updated every quicksketch makes a corresponding change.
+ * 
  * Remove the 'Clone', 'Edit' and 'Delete' links from the hidden Order Status component if
  * it is part of a registration form.
  */
@@ -453,7 +455,8 @@ function uc_webform_webform_submission_insert($node, $submission) {
       elseif ($component['type'] == 'product') {
         if (array_key_exists($component['cid'], $submission->data)) {
           $key = $component['cid'];
-          $qty = (integer) $submission->data[$key]['value'][0];
+          // The quantity specified by the user.
+          $qty = (integer) $submission->data[$key]['value'][2];
 
           $component_data = unserialize(db_result(db_query('SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d', $component['cid'], $node->nid)));
           $product = $component_data['product'];
@@ -461,32 +464,6 @@ function uc_webform_webform_submission_insert($node, $submission) {
           if ($qty > 0) {
             uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
           }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Modify a Webform submission before it is saved to the database.
- *
- * This is a total hack, but it ensures that the correct data is saved to webform_submitted_data.
- * I don't know how else to fix it. Patches welcome!
- */
-function uc_webform_webform_submission_presave($node, &$submission) {
-  foreach ($node->webform['components'] as $component) {
-    if ($component['type'] == 'product_list') {
-      if ($component['extra']['multiple'] == 1) {  // Checkboxes
-        $index = 0;
-        foreach ($submission->data[$component['cid']]['value'] as $prod_key => $prod_val) {
-          if ($prod_val == 0) {
-            unset($submission->data[$component['cid']]['value'][$prod_key]);
-          }
-          else {
-            $submission->data[$component['cid']]['value'][$index] = $submission->data[$component['cid']]['value'][$prod_val];
-            unset($submission->data[$component['cid']]['value'][$prod_val]);
-          }
-          $index++;
         }
       }
     }
@@ -740,6 +717,32 @@ function theme_webform_display_product_list($element) {
   }
 
   return $output;
+}
+
+/**
+ * Implementation of _webform_submit_component().
+ */
+function _webform_submit_product_list($component, $value) {
+  switch (gettype($value)) {
+    case 'string':
+      // Value came from a radio select list
+      $return[0] = 'radio_product_list';
+      $return[1] = $value;
+      break;
+    case 'array':
+      // Value came from a checkboxes select list
+      $return[0] = 'checkboxes_product_list';
+      $count = 1;
+      foreach ($value as $product) {
+        if ($product != 0) {
+          $return[$count] = $product;
+          $count++;
+        }
+      }
+      break;
+  }
+
+  return $return;
 }
 
 /**
@@ -1074,6 +1077,27 @@ function _webform_theme_product() {
  */
 function theme_webform_display_product($element) {
   return theme('item_list', $element['#value']);
+}
+
+/**
+ * Implementation of _webform_submit_component().
+ */
+function _webform_submit_product($component, $value) {
+  $return[0] = 'product';
+  if (!empty($value)) {
+    // Save the nid of the product
+    $return[1] = $component['extra']['product'];
+    // Save the quantity
+    $return[2] = $value;
+
+    return $return;
+  }
+  else {
+    // Save the nid of the product
+    $return[1] = $component['extra']['product'];
+    // Save the quantity
+    $return[2] = 0;
+  }
 }
 
 /**

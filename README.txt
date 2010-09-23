@@ -24,6 +24,10 @@ Notes
 - You cannot modify or delete the hidden 'Order Status' field on a webform until you have unchecked the 'registration' option on all the products within your form. When you do that, the links to 'Edit', 'Clone' or 'Delete' the hidden field will appear.
 - I do not currently plan to support attributes and options. If that is a need, please submit a patch.
 
+Developer Notes
+---------------
+- The structure of the 'no' and 'data' columns in the {webform_submitted_data} table is very important. If the component is a 'product' or a 'product list', the value in the data column where 'no = 0' specifies the type of product data. The options are 'product' (user specifies the quantity they'd like in a textbox), 'checkboxes_product_list' and 'radio_product_list'. If the data refers to 'radio_product_list' and 'checkboxes_product_list', the values corresponding to the 'no' column greater than 0 refer to product node id's. If the data refers to a 'product', then 'no' at 1 is the product node id, and the 'no' at 2 is the product quantity.
+
 Todo/Bugs/Feature Requests
 --------------------------
 - Remove dependency on Ubercart patch.
