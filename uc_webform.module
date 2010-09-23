@@ -970,26 +970,44 @@ function _webform_edit_product($component) {
  */
 function _webform_render_product($component, $value = NULL) {
 
+  $description = "";
   $node = node_load($component['extra']['product']);
-  $product = array('title' => check_plain($node->title), 'price' => round($node->sell_price, 2));
+  $stock_level = uc_stock_level($node->model);
 
-  $element = array(
-    '#type' => 'textfield',
-    '#title' => $component['name'],
-    '#weight' => $component['weight'],
-    '#size' => $component['extra']['width'],
-    '#description' => $component['extra']['description'],
-    '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
-    '#field_prefix' => t('Quantity: '),
-    '#field_suffix' => theme('uc_webform_product', $product),
-    '#required' => $component['mandatory'],
-    '#disabled' => $component['extra']['disabled'],
-    '#element_validate' => array('_webform_render_product_validate'),
-  );
+  // Check stock levels. The product is only selectable if it is in stock.
+  if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
+    $product = array('title' => check_plain($node->title), 'price' => round($node->sell_price, 2));
+    
+    $element = array(
+      '#type' => 'textfield',
+      '#title' => $component['name'],
+      '#weight' => $component['weight'],
+      '#size' => $component['extra']['width'],
+      '#description' => $description . $component['extra']['description'],
+      '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
+      '#field_prefix' => t('Quantity: '),
+      '#field_suffix' => theme('uc_webform_product', $product),
+      '#required' => $component['mandatory'],
+      '#disabled' => $component['extra']['disabled'],
+      '#element_validate' => array('_webform_render_product_validate'),
+    );
 
-  // This is so that products whose quantity is disabled are added to the cart correctly.
-  if ($component['extra']['disabled']) {
-    $element['#value'] = isset($value) ? check_plain($value[0]) : check_plain($component['value']);
+      // This is so that products whose quantity is disabled are added to the cart correctly.
+      if ($component['extra']['disabled']) {
+        $element['#value'] = isset($value) ? check_plain($value[0]) : check_plain($component['value']);
+      }
+  }
+  else {
+    // Product is out of stock
+    $description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
+
+    $element = array(
+      '#type' => 'item',
+      '#title' => $component['name'],
+      '#default_value' => '',
+      '#value' => '',
+      '#description' => $description . $component['extra']['description'],
+    );
   }
 
   return $element;
