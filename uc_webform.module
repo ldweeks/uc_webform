@@ -87,6 +87,8 @@ function uc_webform_submission_delete_products_form_submit($form, &$form_state) 
  * Implementation of hook_form_alter().
  */
 function uc_webform_form_alter(&$form, &$form_state, $form_id) {
+  //dpm($form, "Form");
+  //dpm($form_state, "Form State");
   switch ($form_id) {
     case 'uc_cart_view_form':
       $count = 0;
@@ -630,8 +632,11 @@ function _webform_render_product_list($component, $value = NULL) {
   foreach ($component['extra']['products'] as $val) {
     $node = node_load($val);
 
+    //dpm($node, "Product");
     $product['title'] = check_plain($node->title);
-    $product['price'] = round($node->sell_price, 2);
+    $stock_level = uc_stock_level($node->model);
+    $product['price'] = (($stock_level > 0) || ($stock_level === FALSE)) ? variable_get('uc_currency_sign', '$') . round($node->sell_price, 2) : 'OUT OF STOCK';
+    //$product['attributes'] = uc_product_get_attributes($val);
     $products[$node->nid] = $product;
   }
 
@@ -645,6 +650,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
       '#options' => theme('uc_webform_products', $products),
+      '#element_validate' => array('_webform_render_product_list_validate'),
     );
   }
   elseif ($component['extra']['multiple'] == 1) {
@@ -657,6 +663,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
       '#options' => theme('uc_webform_products', $products),
+      '#element_validate' => array('_webform_render_product_list_validate'),
     );
   }
 
@@ -675,10 +682,17 @@ function theme_uc_webform_products($products) {
 
   $output = array();
   foreach ($products as $nid => $product) {
-    $output[$nid] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . $product['price'] . '</span>';
+    $output[$nid] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['price'] . '</span>';
   }
 
   return $output;
+}
+
+/**
+ * Validate product list entry
+ */
+function _webform_render_product_list_validate($element, &$form_state) {
+  $dummy = array();
 }
 
 /**
