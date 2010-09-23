@@ -628,16 +628,21 @@ function _webform_edit_product_list($component) {
 function _webform_render_product_list($component, $value = NULL) {
 
   $products = array();
+  $description = "";
 
   foreach ($component['extra']['products'] as $val) {
     $node = node_load($val);
-
-    //dpm($node, "Product");
-    $product['title'] = check_plain($node->title);
     $stock_level = uc_stock_level($node->model);
-    $product['price'] = (($stock_level > 0) || ($stock_level === FALSE)) ? variable_get('uc_currency_sign', '$') . round($node->sell_price, 2) : 'OUT OF STOCK';
-    //$product['attributes'] = uc_product_get_attributes($val);
-    $products[$node->nid] = $product;
+
+    // Check stock levels. The product is only selectable if it is in stock.
+    if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
+      $product['title'] = check_plain($node->title);
+      $product['price'] = variable_get('uc_currency_sign', '$') . round($node->sell_price, 2);
+      $products[$node->nid] = $product;
+    }
+    else {
+      $description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
+    }
   }
 
   if ($component['extra']['multiple'] == 0) {
@@ -645,7 +650,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#type' => 'radios',
       '#title' => $component['name'],
       '#weight' => $component['weight'],
-      '#description'   => _webform_filter_descriptions($component['extra']['description']),
+      '#description'   => $description . _webform_filter_descriptions($component['extra']['description']),
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
@@ -658,7 +663,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#type' => 'checkboxes',
       '#title' => $component['name'],
       '#weight' => $component['weight'],
-      '#description'   => _webform_filter_descriptions($component['extra']['description']),
+      '#description'   => $description . _webform_filter_descriptions($component['extra']['description']),
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
