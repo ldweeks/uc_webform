@@ -22,13 +22,11 @@ Notes
 - When a user selects a product in a webform, the product is automatically added to their cart when the form is submitted.
 - If you add a 'product' or 'product list' component to your webform, you have the option of specifying it as part of a registration form on the component edit page. If it is part of a registration form, a hidden field will be automatically created for you to track the status of the registration. The status is based on Ubercart order statuses.
 - You cannot modify or delete the hidden 'Order Status' field on a webform until you have unchecked the 'registration' option on all the products within your form. When you do that, the links to 'Edit', 'Clone' or 'Delete' the hidden field will appear.
-- 
+- I do not currently plan to support attributes and options. If that is a need, please submit a patch.
 
 Todo/Bugs/Feature Requests
 --------------------------
 - Remove dependency on Ubercart patch.
-- Include support for attributes and options.
-- Include support for stock levels.
 - Add better support for the analysis tab.
 
 Support
