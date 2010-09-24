@@ -684,7 +684,7 @@ function _webform_display_product_list($component, $value, $format = 'html') {
     foreach ($value as $product) {
       if ($product != 0) {
         $node = node_load($product);
-        $product_title = "$node->title, " . t('Price: $') . round($node->sell_price, 2);
+        $product_title = $node->title . ', ' . t('SKU:') . $node->model;
         array_push($products, $product_title);
       }
     }
@@ -1055,12 +1055,12 @@ function _webform_render_product_validate($element, &$form_state) {
 function _webform_display_product($component, $value, $format = 'html') {
 
   $node = node_load($component['extra']['product']);
-  $product_info = array(t('Name:') . ' ' . $node->title, t('Sku:') . ' ' . $node->model, t('Quantity:') . ' ' . $value[0]);
+  $product_info = array(t('Title: ') . $node->title . ', ' . t('SKU:') . $node->model . ', ' . t('Quantity:') . ' ' . $value[2]);
 
   return array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
-    '#theme' => 'webform_display_product',
+    '#theme' => 'uc_webform_display_product',
     '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
@@ -1077,7 +1077,7 @@ function _webform_display_product($component, $value, $format = 'html') {
  */
 function _webform_theme_product() {
   return array(
-    'webform_display_product' => array(
+    'uc_webform_display_product' => array(
       'arguments' => array('element' => NULL),
     ),
   );
@@ -1086,8 +1086,8 @@ function _webform_theme_product() {
 /**
  * Format the text output for the product component.
  */
-function theme_webform_display_product($element) {
-  return theme('item_list', $element['#value']);
+function theme_uc_webform_display_product($element) {
+  return $element['#value'][0];
 }
 
 /**
