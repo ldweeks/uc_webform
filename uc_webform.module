@@ -1118,7 +1118,13 @@ function _webform_submit_product($component, $value) {
  */
 function _webform_analysis_product($component, $sids = array()) {
 
-  $results = db_query("SELECT data FROM {webform_submitted_data} WHERE cid = %d", $component['cid']);
+  /* I'm leaving this for now.
+  dvm($component, "Component");
+  // Find the order status component id for this particular webform (if there is one).
+  $order_status_cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $component['nid']));
+  */ 
+
+  $results = db_query("SELECT data FROM {webform_submitted_data} WHERE cid = %d AND nid = %d", $component['cid'], $component['nid']);
 
   $nonblanks = 0;
   $submissions = 0;
