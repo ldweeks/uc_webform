@@ -605,11 +605,13 @@ function _webform_edit_product_list($component) {
 function _webform_render_product_list($component, $value = NULL) {
 
   $products = array();
-  $description = "";
+  $stock_description = "";
+  $sku_description = "";
 
   foreach ($component['extra']['products'] as $val) {
     $node = node_load($val);
     $stock_level = uc_stock_level($node->model);
+    $sku_description .= '{' . $node->model . '}';
 
     // Check stock levels. The product is only selectable if it is in stock.
     if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
@@ -618,7 +620,7 @@ function _webform_render_product_list($component, $value = NULL) {
       $products[$node->nid] = $product;
     }
     else {
-      $description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
+      $stock_description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
     }
   }
 
@@ -627,7 +629,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#type' => 'radios',
       '#title' => $component['name'],
       '#weight' => $component['weight'],
-      '#description'   => $description . _webform_filter_descriptions($component['extra']['description']),
+      '#description'   => $sku_description . '<br />' . $stock_description . _webform_filter_descriptions($component['extra']['description']),
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
@@ -640,7 +642,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#type' => 'checkboxes',
       '#title' => $component['name'],
       '#weight' => $component['weight'],
-      '#description'   => $description . _webform_filter_descriptions($component['extra']['description']),
+      '#description'   => $sku_description . '<br />' . $stock_description . _webform_filter_descriptions($component['extra']['description']),
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
@@ -668,13 +670,6 @@ function theme_uc_webform_products($products) {
   }
 
   return $output;
-}
-
-/**
- * Validate product list entry
- */
-function _webform_render_product_list_validate($element, &$form_state) {
-  $dummy = array();
 }
 
 /**
@@ -973,12 +968,14 @@ function _webform_edit_product($component) {
  */
 function _webform_render_product($component, $value = NULL) {
 
-  $description = "";
+  $stock_description = "";
   $node = node_load($component['extra']['product']);
+  $sku_description = '{' . $node->model . '}' . '<br />';
   $stock_level = uc_stock_level($node->model);
 
   // Check stock levels. The product is only selectable if it is in stock.
   if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
+    // Product is available.
     $product = array('title' => check_plain($node->title), 'price' => round($node->sell_price, 2));
     
     $element = array(
@@ -986,7 +983,7 @@ function _webform_render_product($component, $value = NULL) {
       '#title' => $component['name'],
       '#weight' => $component['weight'],
       '#size' => $component['extra']['width'],
-      '#description' => $description . $component['extra']['description'],
+      '#description' => $sku_description . $component['extra']['description'],
       '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
       '#field_prefix' => t('Quantity: '),
       '#field_suffix' => theme('uc_webform_product', $product),
@@ -1002,14 +999,14 @@ function _webform_render_product($component, $value = NULL) {
   }
   else {
     // Product is out of stock
-    $description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
+    $stock_description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
 
     $element = array(
       '#type' => 'item',
       '#title' => $component['name'],
       '#default_value' => '',
       '#value' => '',
-      '#description' => $description . $component['extra']['description'],
+      '#description' => $stock_description . $component['extra']['description'],
     );
   }
 
@@ -1030,10 +1027,24 @@ function theme_uc_webform_product($product) {
  * Validate product entry
  */
 function _webform_render_product_validate($element, &$form_state) {
+
+  // If the user entered a value, make sure that it's a good one.
   if (!empty($element['#value'])) {
     $match = preg_match('/\A[0-9]+\Z/', $element['#value']);
     if (($match == 0) || $match == FALSE) {
-      form_error($element, t('Please enter a non-negative integer.'));
+      form_error($element, t('Please enter a positive number.'));
+    }
+  }
+
+  // Check to see that we have enough in stock.
+  $matches = array();
+  preg_match_all('/{[a-zA-Z0-9]*}/', $element['#description'], $matches);
+
+  if (isset($matches[0][0])) {
+    $sku = trim($matches[0][0], '{}');
+    $stock = uc_stock_level($sku);
+    if (($stock !== false) && ($stock < $element['#value'])) {
+      form_error($element, t("Only !stock of Sku: !sku remain. Please enter a different amount.", array('!stock' => $stock, '!sku' => $sku)));      
     }
   }
 }
