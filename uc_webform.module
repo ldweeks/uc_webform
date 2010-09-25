@@ -430,14 +430,25 @@ function uc_webform_webform_submission_insert($node, $submission) {
     }
   }
 
+  $remove_sid = false;
   if ($remove) {
     // Remove items from previous webform submissions from the cart
     $cart_items = uc_cart_get_contents();
 
     foreach ($cart_items as $cart_item) {
       if (isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
+        // Capture the submission ID of the previous submission so that we can clean up the webform tables next.
+        $remove_sid = (integer) $cart_item->data['webform_sid'];
+
+        // Remove the item from the cart.
         uc_cart_remove_item($cart_item->nid, $cart_item->cart_id, $cart_item->data);
       }
+    }
+
+    if ($remove_sid) {
+      // Remove the previous submissions from the webform tables.
+      db_query("DELETE FROM {webform_submitted_data} WHERE sid = %d", $remove_sid);
+      db_query("DELETE FROM {webform_submissions} WHERE sid = %d", $remove_sid);
     }
 
     // Add new items to the cart
