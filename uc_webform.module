@@ -139,10 +139,10 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
 
 /**
  * Override 'theme_webform_components_form($form)', found in webform.components.inc.
- * This function will need to be updated every quicksketch makes a corresponding change.
+ * This function will need to be updated everytime quicksketch makes a corresponding change.
  * 
  * Remove the 'Clone', 'Edit' and 'Delete' links from the hidden Order Status component if
- * it is part of a registration form.
+ * there are products included in the webform.
  */
 function uc_webform_webform_components_form($form) {
   // Add CSS to display submission info. Don't preprocess because this CSS file is used rarely.
@@ -207,15 +207,16 @@ function uc_webform_webform_components_form($form) {
 
       // Add each component to a table row.
       // Alteration: I've added this check to remove the 'Edit', 'Clone', 'Delete' links when necessary.
-      $registration = 0;
+      $product_form = 0;
       foreach ($form['#node']->webform['components'] as $comp) {
-        $registration = isset($comp['extra']['registration']) ? $comp['extra']['registration'] : 0;
-        if ($registration == 1) {
+        $product_form = (($comp['type'] == 'product') || ($comp['type'] == 'product_list')) ? 1 : 0;
+        if ($product_form == 1) {
           break;
         }
       }
 
-      if (($registration == 1) && ($component['form_key'] == 'order_status')) {
+      if (($product_form == 1) && ($component['form_key'] == 'order_status')) {
+        // Remove the Edit, Clone and Delete links
         $row_data = array(
           $indents . filter_xss($component['name']),
           t($component['type']),
@@ -228,6 +229,7 @@ function uc_webform_webform_components_form($form) {
         );
       }
       else {
+        // Here is the original code
         $row_data = array(
           $indents . filter_xss($component['name']),
           t($component['type']),
@@ -485,7 +487,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
  * Respond to a Webform component being inserted into the database.
  */
 function uc_webform_webform_component_insert($component) {
-  if (($component['extra']['registration'] == 1) && (($component['type'] == 'product') || ($component['type'] == 'product_list'))) {
+  if (($component['type'] == 'product') || ($component['type'] == 'product_list')) {
     // Check to see whether the hidden field already exists.
     $result = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $component['nid']));
 
@@ -501,7 +503,7 @@ function uc_webform_webform_component_insert($component) {
  * Respond to a Webform component being updated in the database.
  */
 function uc_webform_webform_component_update($component) {
-  if (($component['extra']['registration'] == 1) && (($component['type'] == 'product') || ($component['type'] == 'product_list'))) {
+  if (($component['type'] == 'product') || ($component['type'] == 'product_list')) {
 
     // We need to check to see whether the hidden field already exists.
     // We also need to find the max component id in the webform.
@@ -594,13 +596,6 @@ function _webform_edit_product_list($component) {
     '#title' => t('Multiple'),
     '#default_value' => $component['extra']['multiple'],
     '#description' => t('Check this option if the user is allowed to select multiple products.'),
-    '#weight' => -2,
-  );
-  $form['extra']['registration'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Registration'),
-    '#default_value' => $component['extra']['registration'],
-    '#description' => t('Check this option if this component will be a part of a registration form.'),
     '#weight' => -2,
   );
 
@@ -954,13 +949,6 @@ function _webform_edit_product($component) {
     '#size' => 30,
     '#description' => t('Please select a product.'),
     '#autocomplete_path' => 'uc_webform/autocomplete',
-  );
-  $form['extra']['registration'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Registration'),
-    '#default_value' => $component['extra']['registration'],
-    '#description' => t('Check this option if this component will be a part of a registration form.'),
-    '#weight' => -2,
   );
   $form['display']['width'] = array(
     '#type' => 'textfield',
