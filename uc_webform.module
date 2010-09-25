@@ -849,7 +849,6 @@ function _webform_csv_headers_product_list($component, $export_options) {
 function _webform_csv_data_product_list($component, $export_options, $value) {
 
   $data = array();
-  $data_string = "";
 
   switch ($value[0]) {
     case 'checkboxes_product_list':
@@ -864,11 +863,12 @@ function _webform_csv_data_product_list($component, $export_options, $value) {
       }
       // Compact format
       else {
+        $data_string;
         foreach ($value as $product) {
           $node = node_load($product);
           $data_string .= $node->model . ",";
         }
-        $data[] = $data_string;
+        $data[] = rtrim($data_string, ',');
       }
       break;
     case 'radio_product_list';
