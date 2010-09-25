@@ -824,8 +824,15 @@ function _webform_csv_headers_product_list($component, $export_options) {
     $headers[0][] = '';
     $headers[1][] = $component['name'];
 
-    foreach ($options as $key => $value) {
+    $count = 0;
+    foreach ($options as $value) {
+      if ($count != 0) {
+        // Empty column per sub-field in main header.
+        $headers[0][] = '';
+        $headers[1][] = '';
+      }
       $headers[2][] = $value;
+      $count++;
     }
   }
   else {
@@ -841,27 +848,33 @@ function _webform_csv_headers_product_list($component, $export_options) {
  */
 function _webform_csv_data_product_list($component, $export_options, $value) {
 
-  $options = _uc_webform_products($component);
   $data = array();
+  $data_string = "";
 
-  if ($component['extra']['multiple']) {
-    foreach ($options as $key => $item) {
-      $index = array_search($key, (array) $value);
-      if ($index !== FALSE) {
-        $data[] = ($export_options['select_format'] == 'separate') ? 'X' : $key;
-        unset($value[$index]);
+  switch ($value[0]) {
+    case 'checkboxes_product_list':
+      unset($value[0]);
+      // Separate format
+      if ($export_options['select_format'] == 'separate') {
+        $count = 0;
+        foreach ($component['extra']['products'] as $product) {
+          $data[] = in_array($product, $value) ? 'X' : '';
+          $count++;
+        }
       }
-      elseif ($export_options['select_format'] == 'separate') {
-        $data[] = '';
+      // Compact format
+      else {
+        foreach ($value as $product) {
+          $node = node_load($product);
+          $data_string .= $node->model . ",";
+        }
+        $data[] = $data_string;
       }
-    }
-  }
-  else {
-    $data = isset($options[$value[0]]) ? $options[$value[0]] : $value[0];
-  }
-
-  if ($component['extra']['multiple'] && $export_options['select_format'] == 'compact') {
-    $data = implode(',', (array) $data);
+      break;
+    case 'radio_product_list';
+      $node = node_load($value[1]);
+      $data[] = $node->model;
+      break;
   }
 
   return $data;
@@ -1159,7 +1172,7 @@ function _webform_analysis_product($component, $sids = array()) {
  * Implementation of _webform_table_component().
  */
 function _webform_table_product($component, $value) {
-  return check_plain(empty($value[0]) ? '' : $value[0]);
+  return check_plain(empty($value[2]) ? '' : $value[2]);
 }
 
 /**
