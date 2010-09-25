@@ -102,11 +102,9 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
 
             $component_info['extra'] = unserialize($component_info['extra']);
 
-            // Users may not edit the quantity of a product if the quantity was disabled in the webform.
-            if ($component_info['extra']['disabled'] == 1) {
-              $form['items'][$count]['qty']['#disabled'] = TRUE;
-              $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d AND no = 2", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
-            }
+            // Users may not edit the quantity of a product from the cart.
+            $form['items'][$count]['qty']['#disabled'] = TRUE;
+            $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d AND no = 2", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
 
             // Force the user to remove *all* webform-related products from the cart if they want to remove *one* mandatory webform-related product from the cart.
             if ($component_info['mandatory'] == 1) {
