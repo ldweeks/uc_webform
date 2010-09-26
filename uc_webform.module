@@ -135,6 +135,67 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
   if (!empty($theme_registry['webform_components_form'])) {
     $theme_registry['webform_components_form']['function'] = 'uc_webform_webform_components_form';
   }
+  if (!empty($theme_registry['webform_results_analysis'])) {
+    $theme_registry['webform_results_analysis']['function'] = 'uc_webform_webform_results_analysis';
+  }
+}
+
+/**
+ * Output the content of the Analysis page.
+ *
+ * @see webform_results_analysis()
+ */
+function uc_webform_webform_results_analysis($node, $data, $sids = array(), $analysis_component = NULL) {
+
+  $rows = array();
+  $question_number = 0;
+  $single = isset($analysis_component);
+
+  $header = array(
+    $single ? $analysis_component['name'] : t('Q'),
+    array('data' => $single ? '&nbsp' : t('responses'), 'colspan' => '10')
+  );
+
+  foreach ($data as $cid => $row_data) {
+    $question_number++;
+
+    if (is_array($row_data)) {
+      $row = array();
+      if (!$single) {
+        $row[] = array('data' => '<strong>' . $question_number . '</strong>', 'rowspan' => count($row_data) + 1, 'valign' => 'top');
+        $row[] = array('data' => '<strong>' . check_plain($node->webform['components'][$cid]['name']) . '</strong>', 'colspan' => '10');
+      }
+      $rows = array_merge($rows, array_merge(array($row), $row_data));
+    }
+  }
+
+  if (count($rows) == 0) {
+    $rows[] = array(array('data' => t('There are no submissions for this form. <a href="!url">View this form</a>.', array('!url' => url('node/' . $node->nid))), 'colspan' => 20));
+  }
+  else { 
+    // Add the checkout information
+
+    // Find the Order Status component ID
+    $order_status_cid = 0;
+    foreach ($node->webform['components'] as $component) {
+      if ($component['form_key'] == 'order_status') {
+        $order_status_cid = $component['cid'];
+        break;
+      }
+    }
+
+    // If there are products in the webform, display the checkout completion statistics.
+    if ($order_status_cid != 0) {
+      $total_no_checkout = db_result(db_query("SELECT COUNT(*) FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data = 'Did not complete checkout'", $node->nid, $order_status_cid));
+      $total_submissions = db_result(db_query("SELECT COUNT(*) FROM {webform_submissions} WHERE nid = %d", $node->nid));
+  
+      $rows[] = array(array('data' => '<strong>!</strong>', 'rowspan' => 4, 'valign' => 'top'), array('data' => '<strong>Checkout</strong>', 'colspan' => 10));
+      $rows[] = array(t('Did not complete checkout'), $total_no_checkout);
+      $rows[] = array(t('Completed checkout'), $total_submissions-$total_no_checkout);
+    }
+  }
+
+  return theme('table', $header, $rows);
 }
 
 /**
@@ -1128,19 +1189,42 @@ function _webform_submit_product($component, $value) {
  */
 function _webform_analysis_product($component, $sids = array()) {
 
-  /* I'm leaving this for now.
-  dvm($component, "Component");
+  //dpm($component, "Component");
+  /* I'm leaving this for now
   // Find the order status component id for this particular webform (if there is one).
   $order_status_cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $component['nid']));
   */ 
 
-  $results = db_query("SELECT data FROM {webform_submitted_data} WHERE cid = %d AND nid = %d", $component['cid'], $component['nid']);
+  $results = db_query("SELECT no, sid, data FROM {webform_submitted_data} WHERE cid = %d AND nid = %d", $component['cid'], $component['nid']);
+  $checkout_data = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $component['nid']);
+
+  // Create an array of submission IDs where the user did not complete checkout.
+  $checkout = array();
+  while ($co_result = db_fetch_array($checkout_data)) {
+    $checkout[] = $co_result['sid'];
+  }
 
   $nonblanks = 0;
   $submissions = 0;
   $total = 0;
   $min = 999999; // This seems retarded, but I don't know how else to do it.
   $max = 0;
+
+/*
+  while ($data = db_fetch_array($results)) {
+    // Check to see that 
+    if (in_array($data['sid'], $checkout) {
+      $incomplete++;
+      continue;
+    }
+    elseif (($data['no'] == 0) && ($data['data'] == 'product')) {
+        
+        if ($data['no'] == 2) {
+          $num = trim($data['data']);
+        }
+      }
+    $submissions++;
+  }
 
   while ($data = db_fetch_array($results)) {
     $num = trim($data['data']);
@@ -1155,7 +1239,7 @@ function _webform_analysis_product($component, $sids = array()) {
       }
     }
     $submissions++;
-  }
+  }*/
 
   $rows[0] = array(t('Left Blank'), ($submissions - $nonblanks));
   $rows[1] = array(t('User entered value'), $nonblanks);
