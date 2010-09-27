@@ -24,6 +24,15 @@ function uc_webform_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
+  $items['node/%webform_menu/webform-results/orders'] = array(
+    'title' => 'Orders',
+    'page callback' => 'uc_webform_order_analysis',
+    'page arguments' => array(1),
+    'access callback' => 'webform_results_access',
+    'access arguments' => array(1),
+    'weight' => 5,
+    'type' => MENU_LOCAL_TASK,
+  );
 
   return $items;
 }
@@ -40,6 +49,11 @@ function _uc_webform_autocomplete_products($string = '') {
 
   print drupal_to_js($matches);
   exit();
+}
+
+function uc_webform_order_analysis($node) {
+  dpm($node, "Node");
+  return 'Hello!';
 }
 
 /**
