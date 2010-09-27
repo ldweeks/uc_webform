@@ -147,6 +147,7 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
  */
 function uc_webform_webform_results_analysis($node, $data, $sids = array(), $analysis_component = NULL) {
 
+  dpm($data, "Data");
   $rows = array();
   $question_number = 0;
   $single = isset($analysis_component);
@@ -191,7 +192,7 @@ function uc_webform_webform_results_analysis($node, $data, $sids = array(), $ana
   
       $rows[] = array(array('data' => '<strong>!</strong>', 'rowspan' => 4, 'valign' => 'top'), array('data' => '<strong>Checkout</strong>', 'colspan' => 10));
       $rows[] = array(t('Did not complete checkout'), $total_no_checkout);
-      $rows[] = array(t('Completed checkout'), $total_submissions-$total_no_checkout);
+      $rows[] = array(t('Checkout complete'), $total_submissions-$total_no_checkout);
     }
   }
 
