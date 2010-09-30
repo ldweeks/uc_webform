@@ -24,9 +24,9 @@ function uc_webform_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
-  $items['node/%webform_menu/webform-results/orders'] = array(
+  $items['node/%webform_menu/webform-results/products'] = array(
     'title' => 'Orders',
-    'page callback' => 'uc_webform_order_analysis',
+    'page callback' => 'uc_webform_product_analysis',
     'page arguments' => array(1),
     'access callback' => 'webform_results_access',
     'access arguments' => array(1),
@@ -51,9 +51,37 @@ function _uc_webform_autocomplete_products($string = '') {
   exit();
 }
 
-function uc_webform_order_analysis($node) {
+function uc_webform_product_analysis($node) {
   dpm($node, "Node");
-  return 'Hello!';
+  $order_status_cid = 0;
+  $cids = array();
+
+  foreach ($node->webform['components'] as $component) {
+    if (($component['type'] == 'product') || ($component['type'] == 'product')) {
+      $cids[] = $component['cid'];
+    }
+
+    if ($component['form_key'] == 'order_status') {
+      $order_status_cid = $component['cid'];
+    }
+  }
+
+  if (!empty($cids)) {
+    $results = db_query("SELECT * FROM {webform_submitted_data} WHERE nid = %d", $node->nid);
+    $num_no_checkout = db_result(db_query("SELECT sid, count(data) FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $node->nid));
+    
+
+
+    return theme('uc_webform_product_analysis', $node, $num_no_checkout, $order_status_cid);
+  }
+  else {
+    return t('There are no products included in this webform.');
+  }
+}
+
+function theme_uc_webform_product_analysis($node) {
+  return 'Yikes!';
+//theme('table', $header, $rows);
 }
 
 /**
@@ -67,6 +95,9 @@ function uc_webform_theme() {
     'uc_webform_product' => array(
       'arguments' => array('product' => NULL),
     ),
+    'uc_webform_product_analysis' => array(
+      'arguments' => array('node' => NULL),
+    ),
   );
 }
 
@@ -76,7 +107,7 @@ function uc_webform_theme() {
  */
 function uc_webform_submission_delete_products_form() {
 
-  $question = t('This product was a mandatory part of a form submission. If you remove this product from your cart, all products associated with your form submission will also be removed. Are you sure you want to delete this product?');
+  $question = t('This product is a mandatory part of a form submission. If you remove this product from your cart, all products associated with your form submission will also be removed. Are you sure you want to delete this product?');
 
   $destination = 'cart';
 
@@ -149,68 +180,6 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
   if (!empty($theme_registry['webform_components_form'])) {
     $theme_registry['webform_components_form']['function'] = 'uc_webform_webform_components_form';
   }
-  if (!empty($theme_registry['webform_results_analysis'])) {
-    $theme_registry['webform_results_analysis']['function'] = 'uc_webform_webform_results_analysis';
-  }
-}
-
-/**
- * Output the content of the Analysis page.
- *
- * @see webform_results_analysis()
- */
-function uc_webform_webform_results_analysis($node, $data, $sids = array(), $analysis_component = NULL) {
-
-  dpm($data, "Data");
-  $rows = array();
-  $question_number = 0;
-  $single = isset($analysis_component);
-
-  $header = array(
-    $single ? $analysis_component['name'] : t('Q'),
-    array('data' => $single ? '&nbsp' : t('responses'), 'colspan' => '10')
-  );
-
-  foreach ($data as $cid => $row_data) {
-    $question_number++;
-
-    if (is_array($row_data)) {
-      $row = array();
-      if (!$single) {
-        $row[] = array('data' => '<strong>' . $question_number . '</strong>', 'rowspan' => count($row_data) + 1, 'valign' => 'top');
-        $row[] = array('data' => '<strong>' . check_plain($node->webform['components'][$cid]['name']) . '</strong>', 'colspan' => '10');
-      }
-      $rows = array_merge($rows, array_merge(array($row), $row_data));
-    }
-  }
-
-  if (count($rows) == 0) {
-    $rows[] = array(array('data' => t('There are no submissions for this form. <a href="!url">View this form</a>.', array('!url' => url('node/' . $node->nid))), 'colspan' => 20));
-  }
-  else { 
-    // Add the checkout information
-
-    // Find the Order Status component ID
-    $order_status_cid = 0;
-    foreach ($node->webform['components'] as $component) {
-      if ($component['form_key'] == 'order_status') {
-        $order_status_cid = $component['cid'];
-        break;
-      }
-    }
-
-    // If there are products in the webform, display the checkout completion statistics.
-    if ($order_status_cid != 0) {
-      $total_no_checkout = db_result(db_query("SELECT COUNT(*) FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data = 'Did not complete checkout'", $node->nid, $order_status_cid));
-      $total_submissions = db_result(db_query("SELECT COUNT(*) FROM {webform_submissions} WHERE nid = %d", $node->nid));
-  
-      $rows[] = array(array('data' => '<strong>!</strong>', 'rowspan' => 4, 'valign' => 'top'), array('data' => '<strong>Checkout</strong>', 'colspan' => 10));
-      $rows[] = array(t('Did not complete checkout'), $total_no_checkout);
-      $rows[] = array(t('Checkout complete'), $total_submissions-$total_no_checkout);
-    }
-  }
-
-  return theme('table', $header, $rows);
 }
 
 /**
@@ -1194,6 +1163,8 @@ function _webform_submit_product($component, $value) {
     $return[1] = $component['extra']['product'];
     // Save the quantity
     $return[2] = 0;
+
+    return $return;
   }
 }
 
