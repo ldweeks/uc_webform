@@ -130,24 +130,16 @@ function _uc_webform_product_orders($component, $order_status_cid) {
 
   $product_results = array();
   $total = 0;
-  $min = 999999; // This seems retarded, but I don't know how else to do it.
-  $max = 0;
 
   while ($co_result = db_fetch_array($co_results)) {
     if ($co_result['no'] == 2) {
       $total += $co_result['data'];
-      if ($min > $co_result['data']) {
-        $min = $co_result['data'];
-      }
-      if ($max < $co_result['data']) {
-        $max = $co_result['data'];
-      }
     }
   }
 
-  $rows[0] = array(t('Min'), $min);
-  $rows[1] = array(t('Max'), $max);
-  $rows[2] = array(t('Total'), $total);
+  $product_node = node_load($component['extra']['product']);
+
+  $rows[0] = array(t($product_node->model), $total);
 
   return $rows;
 }
@@ -228,9 +220,8 @@ function theme_uc_webform_product_analysis($node, $data, $sids = array(), $analy
   $total_submissions = db_result(db_query("SELECT COUNT(DISTINCT sid) FROM {webform_submitted_data} WHERE nid = %d", $node->nid));
   
   $rows[] = array(array('data' => '<strong>$</strong>', 'rowspan' => 4, 'valign' => 'top'), array('data' => '<strong>Checkout statistics</strong>', 'colspan' => 10));
-  $rows[] = array(t('Did not complete checkout'), $num_no_checkout);
-  $rows[] = array(t('Completed checkout'), $total_submissions - $num_no_checkout);
-  $rows[] = array('<strong>' . t('Total submissions') . '</strong>', $total_submissions);
+  $rows[] = array(t('Total completed checkouts'), $total_submissions - $num_no_checkout);
+  $rows[] = array('<strong>' . t('Total webform submissions') . '</strong>', $total_submissions);
 
   return theme('table', $header, $rows);
 }
@@ -321,8 +312,6 @@ function uc_webform_submission_delete_products_form_submit($form, &$form_state) 
  * Implementation of hook_form_alter().
  */
 function uc_webform_form_alter(&$form, &$form_state, $form_id) {
-  //dpm($form, "Form");
-  //dpm($form_state, "Form State");
   switch ($form_id) {
     case 'uc_cart_view_form':
       $count = 0;
@@ -1026,7 +1015,6 @@ function _webform_analysis_product_list($component, $sids = array(), $single = F
     $rows = $ordered_rows;
   }
 
-  dpm ($rows);
   return $rows;
 }
 
@@ -1354,67 +1342,22 @@ function _webform_submit_product($component, $value) {
 /**
  * Implementation of _webform_analysis_component().
  *
- * This is mostly useless right now because it doesn't filter for completed checkouts.
  */
 function _webform_analysis_product($component, $sids = array()) {
 
-  //dpm($component, "Component");
-  /* I'm leaving this for now
-  // Find the order status component id for this particular webform (if there is one).
-  $order_status_cid = db_result(db_query("SELECT cid FROM {webform_component} WHERE nid = %d AND form_key = 'order_status'", $component['nid']));
-  */ 
+  $results = db_query("SELECT data, no FROM {webform_submitted_data} WHERE nid = %d AND cid = %d ", $component['nid'], $component['cid']); 
 
-  $results = db_query("SELECT no, sid, data FROM {webform_submitted_data} WHERE cid = %d AND nid = %d", $component['cid'], $component['nid']);
-  $checkout_data = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $component['nid']);
-
-  // Create an array of submission IDs where the user did not complete checkout.
-  $checkout = array();
-  while ($co_result = db_fetch_array($checkout_data)) {
-    $checkout[] = $co_result['sid'];
-  }
-
-  $nonblanks = 0;
-  $submissions = 0;
   $total = 0;
-  $min = 999999; // This seems retarded, but I don't know how else to do it.
-  $max = 0;
-
-/*
-  while ($data = db_fetch_array($results)) {
-    // Check to see that 
-    if (in_array($data['sid'], $checkout) {
-      $incomplete++;
-      continue;
+  while ($result = db_fetch_array($results)) {
+    if ($result['no'] == 2) {
+      $total += $result['data'];
     }
-    elseif (($data['no'] == 0) && ($data['data'] == 'product')) {
-        
-        if ($data['no'] == 2) {
-          $num = trim($data['data']);
-        }
-      }
-    $submissions++;
   }
 
-  while ($data = db_fetch_array($results)) {
-    $num = trim($data['data']);
-    if (drupal_strlen($num) > 0) {
-      $nonblanks++;
-      $total += $num;
-      if ($num < $min) {
-        $min = $num;
-      }
-      elseif ($num > $max) {
-        $max = $num;
-      }
-    }
-    $submissions++;
-  }*/
+  $product_node = node_load($component['extra']['product']);
 
-  $rows[0] = array(t('Left Blank'), ($submissions - $nonblanks));
-  $rows[1] = array(t('User entered value'), $nonblanks);
-  $rows[2] = array(t('Min'), $min);
-  $rows[3] = array(t('Max'), $max);
-  $rows[4] = array(t('Total'), $total);
+  $rows[0] = array(t($product_node->model), $total);
+
   return $rows;
 }
 
