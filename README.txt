@@ -22,7 +22,7 @@ Notes
 - When a user selects a product in a webform, the product is automatically added to their cart when the form is submitted.
 - If you add a 'product' or 'product list' component to your webform, a hidden 'Order Status' field will be added to your webform. The values in this field will correspond to the Ubercart order status of the order that was created by the webform submission. You cannot remove an 'Order Status' component from a webform until you have removed all product components from the webform first.
 - The Analysis tab (which is available when viewing results for a particular webform) returns product data for *all* webform submissions. That means that clicking on 'Analysis' will display *all* the submission data for a  particular webform regardless of whether or not the user completed the checkout process.
-- INFORMATION ABOUT THE ORDERS TAB.
+- A new tab called "Orders" appears when you click on the results for a particular webform. This new page only contains from the 'product' or 'product list' components of the given webform, and it only returns data for webform submissions that ended in a completed checkout. This way, you can quickly and easily see how many of a given product was purchased with your webform.
 - I do not currently plan to support attributes and options. If that is a need, please submit a patch.
 
 Developer Notes
