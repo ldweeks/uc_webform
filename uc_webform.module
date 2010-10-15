@@ -158,9 +158,39 @@ function _uc_webform_product_orders($component, $order_status_cid) {
  */
 function _uc_webform_product_list_orders($component, $order_status_cid) {
 
-  $rows[0] = array(t('Min'), 'Min');
-  $rows[1] = array(t('Max'), 'Max');
-  $rows[2] = array(t('Total'), 'Total');
+  // First, I need to get this list of all submission IDs for webform submissions where checkout has been completed.
+  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data != 'Did not complete checkout'", $component['nid'], $order_status_cid);
+
+  $sids = array();
+  while ($submission = db_fetch_array($checked_out_sids)) {
+    $sids[] = $submission['sid'];
+  }
+
+  // Use the array of checked out submission ID's to grab only the checked out product data.
+  $co_results = db_query("SELECT * FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ('". implode("','", $sids) ."')", $component['cid'], $component['nid']);
+
+  $product_results = array();
+  while ($co_result = db_fetch_array($co_results)) {
+    if ($co_result['no'] == 0) {
+      continue;
+    }
+    else {
+      if (array_key_exists($co_result['data'], $product_results)) {
+        $product_results[$co_result['data']] += 1;
+      } 
+      else {
+        $product_results[$co_result['data']] = 1;
+      }
+    }
+  }
+
+  $rows = array();
+  $count = 0;
+  foreach ($product_results as $nid => $qty) {
+    $product_node = node_load($nid);
+    $rows[$count] = array(t($product_node->model), $qty);
+    $count++;
+  }
 
   return $rows;
 }
@@ -996,6 +1026,7 @@ function _webform_analysis_product_list($component, $sids = array(), $single = F
     $rows = $ordered_rows;
   }
 
+  dpm ($rows);
   return $rows;
 }
 
