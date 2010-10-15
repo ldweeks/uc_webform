@@ -50,20 +50,10 @@ function _uc_webform_autocomplete_products($string = '') {
   print drupal_to_js($matches);
   exit();
 }
-/****************************************/
 
 /**
  * Provides a simple analysis of submissions that contain products.
  *
- * @param $node
- *   The webform node on which to generate the analysis.
- * @param $sids
- *   An array of submission IDs to which this analysis may be filtered. May be
- *   used to generate results that are per-user or other groups of submissions.
- * @param $analysis_component
- *   A webform component. If passed in, additional information may be returned
- *   relating specifically to that component's analysis, such as a list of
- *   "Other" values within a select list.
  */
 function uc_webform_product_analysis($node, $sids = array(), $analysis_component = NULL) {
   if (!is_array($sids)) {
@@ -225,44 +215,6 @@ function theme_uc_webform_product_analysis($node, $data, $sids = array(), $analy
 
   return theme('table', $header, $rows);
 }
-
-/****************************************/
-
-/*function uc_webform_product_analysis($node) {
-  dpm($node, "Node");
-  $order_status_cid = 0;
-  $cids = array();
-
-  foreach ($node->webform['components'] as $component) {
-    if (($component['type'] == 'product') || ($component['type'] == 'product_list')) {
-      $cids[] = $component['cid'];
-    }
-
-    if ($component['form_key'] == 'order_status') {
-      $order_status_cid = $component['cid'];
-    }
-  }
-
-  if (!empty($cids)) {
-    $results = db_query("SELECT * FROM {webform_submitted_data} WHERE nid = %d", $node->nid);
-    $num_no_checkout = db_result(db_query("SELECT COUNT(*) FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $node->nid));
-    $num_checkout_complete = db_result(db_query("SELECT COUNT(DISTINCT sid) FROM {webform_submitted_data} WHERE nid = %d", $node->nid));
-    
-
-
-    return theme('uc_webform_product_analysis', $node, $num_no_checkout, $order_status_cid, $num_checkout_complete);
-  }
-  else {
-    return t('There are no products included in this webform.');
-  }
-}
-
-function theme_uc_webform_product_analysis($node, $num_no_checkout, $order_status_cid, $num_checkout_complete) {
-  return "$num_no_checkout - $num_checkout_complete - $order_status_cid - Yikes!";
-//theme('table', $header, $rows);
-}*/
-
-/******************************************/
 
 /**
  * Implementation of hook_theme().
