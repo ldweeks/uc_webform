@@ -32,7 +32,8 @@ Developer Notes
 Todo/Bugs/Feature Requests
 --------------------------
 - Remove dependency on Ubercart patch.
-- Add better support for the analysis tab.
+- Add charts.
+- Add ability to filter orders by those associated with a particular webform (ubercart side of things).
 
 Support
 -------
