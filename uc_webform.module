@@ -96,7 +96,8 @@ function uc_webform_product_analysis($node, $sids = array(), $analysis_component
 
   if (empty($cids)) {
     return 'There are no products associated with this webform.';
-  } else {
+  }
+  else {
     return theme('uc_webform_product_analysis', $node, $data, $sids, $analysis_component, $order_status_cid);
   }
 }
@@ -108,7 +109,7 @@ function uc_webform_product_analysis($node, $sids = array(), $analysis_component
 function _uc_webform_product_orders($component, $order_status_cid) {
 
   // First, I need to get this list of all submission IDs for webform submissions where checkout has been completed.
-  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data != 'Did not complete checkout'", $component['nid'], $order_status_cid);
+  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data <> 'Did not complete checkout'", $component['nid'], $order_status_cid);
 
   $sids = array();
   while ($submission = db_fetch_array($checked_out_sids)) {
@@ -141,7 +142,7 @@ function _uc_webform_product_orders($component, $order_status_cid) {
 function _uc_webform_product_list_orders($component, $order_status_cid) {
 
   // First, I need to get this list of all submission IDs for webform submissions where checkout has been completed.
-  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data != 'Did not complete checkout'", $component['nid'], $order_status_cid);
+  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data <> 'Did not complete checkout'", $component['nid'], $order_status_cid);
 
   $sids = array();
   while ($submission = db_fetch_array($checked_out_sids)) {
@@ -159,7 +160,7 @@ function _uc_webform_product_list_orders($component, $order_status_cid) {
     else {
       if (array_key_exists($co_result['data'], $product_results)) {
         $product_results[$co_result['data']] += 1;
-      } 
+      }
       else {
         $product_results[$co_result['data']] = 1;
       }
@@ -208,7 +209,7 @@ function theme_uc_webform_product_analysis($node, $data, $sids = array(), $analy
 
   $num_no_checkout = db_result(db_query("SELECT COUNT(*) FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $node->nid));
   $total_submissions = db_result(db_query("SELECT COUNT(DISTINCT sid) FROM {webform_submitted_data} WHERE nid = %d", $node->nid));
-  
+
   $rows[] = array(array('data' => '<strong>$</strong>', 'rowspan' => 4, 'valign' => 'top'), array('data' => '<strong>Checkout statistics</strong>', 'colspan' => 10));
   $rows[] = array(t('Total completed checkouts'), $total_submissions - $num_no_checkout);
   $rows[] = array('<strong>' . t('Total webform submissions') . '</strong>', $total_submissions);
@@ -315,7 +316,7 @@ function uc_webform_theme_registry_alter(&$theme_registry) {
 /**
  * Override 'theme_webform_components_form($form)', found in webform.components.inc.
  * This function will need to be updated everytime quicksketch makes a corresponding change.
- * 
+ *
  * Remove the 'Clone', 'Edit' and 'Delete' links from the hidden Order Status component if
  * there are products included in the webform.
  */
@@ -605,7 +606,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
     }
   }
 
-  $remove_sid = false;
+  $remove_sid = FALSE;
   if ($remove) {
     // Remove items from previous webform submissions from the cart
     $cart_items = uc_cart_get_contents();
@@ -1155,7 +1156,7 @@ function _webform_render_product($component, $value = NULL) {
   if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
     // Product is available.
     $product = array('title' => check_plain($node->title), 'price' => round($node->sell_price, 2));
-    
+
     $element = array(
       '#type' => 'textfield',
       '#title' => $component['name'],
@@ -1163,7 +1164,7 @@ function _webform_render_product($component, $value = NULL) {
       '#size' => $component['extra']['width'],
       '#description' => $sku_description . $component['extra']['description'],
       '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
-      '#field_prefix' => t('Quantity: '),
+      '#field_prefix' => t('Quantity:') . ' ',
       '#field_suffix' => theme('uc_webform_product', $product),
       '#required' => $component['mandatory'],
       '#disabled' => $component['extra']['disabled'],
@@ -1221,8 +1222,8 @@ function _webform_render_product_validate($element, &$form_state) {
   if (isset($matches[0][0])) {
     $sku = trim($matches[0][0], '{}');
     $stock = uc_stock_level($sku);
-    if (($stock !== false) && ($stock < $element['#value'])) {
-      form_error($element, t("Only !stock of Sku: !sku remain. Please enter a different amount.", array('!stock' => $stock, '!sku' => $sku)));      
+    if (($stock !== FALSE) && ($stock < $element['#value'])) {
+      form_error($element, t("Only !stock of Sku: !sku remain. Please enter a different amount.", array('!stock' => $stock, '!sku' => $sku)));
     }
   }
 }
@@ -1233,7 +1234,7 @@ function _webform_render_product_validate($element, &$form_state) {
 function _webform_display_product($component, $value, $format = 'html') {
 
   $node = node_load($component['extra']['product']);
-  $product_info = array(t('Title: ') . $node->title . ', ' . t('SKU: ') . $node->model . ', ' . t('Quantity:') . ' ' . $value[2]);
+  $product_info = array(t('Title:') . ' ' . $node->title . ', ' . t('SKU:') . ' ' . $node->model . ', ' . t('Quantity:') . ' ' . $value[2]);
 
   return array(
     '#title' => $component['name'],
@@ -1297,7 +1298,7 @@ function _webform_submit_product($component, $value) {
  */
 function _webform_analysis_product($component, $sids = array()) {
 
-  $results = db_query("SELECT data, no FROM {webform_submitted_data} WHERE nid = %d AND cid = %d ", $component['nid'], $component['cid']); 
+  $results = db_query("SELECT data, no FROM {webform_submitted_data} WHERE nid = %d AND cid = %d ", $component['nid'], $component['cid']);
 
   $total = 0;
   while ($result = db_fetch_array($results)) {
