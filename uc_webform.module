@@ -24,7 +24,7 @@ function uc_webform_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
-  $items['node/%webform_menu/webform-results/products'] = array(
+  $items['node/%webform_menu/webform-results/orders'] = array(
     'title' => 'Orders',
     'page callback' => 'uc_webform_product_analysis',
     'page arguments' => array(1),
@@ -50,14 +50,170 @@ function _uc_webform_autocomplete_products($string = '') {
   print drupal_to_js($matches);
   exit();
 }
+/****************************************/
 
-function uc_webform_product_analysis($node) {
+/**
+ * Provides a simple analysis of submissions that contain products.
+ *
+ * @param $node
+ *   The webform node on which to generate the analysis.
+ * @param $sids
+ *   An array of submission IDs to which this analysis may be filtered. May be
+ *   used to generate results that are per-user or other groups of submissions.
+ * @param $analysis_component
+ *   A webform component. If passed in, additional information may be returned
+ *   relating specifically to that component's analysis, such as a list of
+ *   "Other" values within a select list.
+ */
+function uc_webform_product_analysis($node, $sids = array(), $analysis_component = NULL) {
+  if (!is_array($sids)) {
+    $sids = array();
+  }
+
+  // If showing a component's details, we don't want to loose the menu tabs.
+  if ($analysis_component) {
+    $item = menu_get_item('node/' . $node->nid . '/webform-results/analysis');
+    menu_set_item(NULL, $item);
+  }
+
+  $components = isset($analysis_component) ? array($analysis_component['cid'] => $analysis_component) : $node->webform['components'];
+  $data = array();
+  $cids = array();
+  $order_status_cid = 0;
+
+  // First, find the Order Status cid.
+  foreach ($components as $cid => $component) {
+    if ($component['form_key'] == 'order_status') {
+      $order_status_cid = $component['cid'];
+    }
+  }
+
+  foreach ($components as $cid => $component) {
+    // Limit the results to product and product_list components.
+    if ($component['type'] == 'product') {
+      if ($row_data = _uc_webform_product_orders($component, $order_status_cid)) {
+        $data[$cid] = $row_data;
+      }
+      $cids[] = $component['cid'];
+    }
+    elseif ($component['type'] == 'product_list') {
+      if ($row_data = _uc_webform_product_list_orders($component, $order_status_cid)) {
+        $data[$cid] = $row_data;
+      }
+      $cids[] = $component['cid'];
+    }
+  }
+
+  if (empty($cids)) {
+    return 'There are no products associated with this webform.';
+  } else {
+    return theme('uc_webform_product_analysis', $node, $data, $sids, $analysis_component, $order_status_cid);
+  }
+}
+
+/**
+ * Generate statistics for product components, limited to checked out webforms.
+ *
+ */
+function _uc_webform_product_orders($component, $order_status_cid) {
+
+  // First, I need to get this list of all submission IDs for webform submissions where checkout has been completed.
+  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data != 'Did not complete checkout'", $component['nid'], $order_status_cid);
+
+  $sids = array();
+  while ($submission = db_fetch_array($checked_out_sids)) {
+    $sids[] = $submission['sid'];
+  }
+
+  // Use the array of checked out submission ID's to grab only the checked out product data.
+  $co_results = db_query("SELECT * FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ('". implode("','", $sids) ."')", $component['cid'], $component['nid']);
+
+  $product_results = array();
+  $total = 0;
+  $min = 999999; // This seems retarded, but I don't know how else to do it.
+  $max = 0;
+
+  while ($co_result = db_fetch_array($co_results)) {
+    if ($co_result['no'] == 2) {
+      $total += $co_result['data'];
+      if ($min > $co_result['data']) {
+        $min = $co_result['data'];
+      }
+      if ($max < $co_result['data']) {
+        $max = $co_result['data'];
+      }
+    }
+  }
+
+  $rows[0] = array(t('Min'), $min);
+  $rows[1] = array(t('Max'), $max);
+  $rows[2] = array(t('Total'), $total);
+
+  return $rows;
+}
+
+/**
+ * Generate statistics for product components, limited to checked out webforms.
+ *
+ */
+function _uc_webform_product_list_orders($component, $order_status_cid) {
+
+  $rows[0] = array(t('Min'), 'Min');
+  $rows[1] = array(t('Max'), 'Max');
+  $rows[2] = array(t('Total'), 'Total');
+
+  return $rows;
+}
+
+/**
+ * Output the content of the Analysis page.
+ *
+ * @see webform_results_analysis()
+ */
+function theme_uc_webform_product_analysis($node, $data, $sids = array(), $analysis_component = NULL, $order_status_cid) {
+
+  $rows = array();
+  $question_number = 0;
+  $single = isset($analysis_component);
+
+  $header = array(
+    $single ? $analysis_component['name'] : t('Q'),
+    array('data' => $single ? '&nbsp' : t('Product Selection (completed checkouts)'), 'colspan' => '10')
+  );
+
+  foreach ($data as $cid => $row_data) {
+    $question_number++;
+
+    if (is_array($row_data)) {
+      $row = array();
+      if (!$single) {
+        $row[] = array('data' => '<strong>' . $question_number . '</strong>', 'rowspan' => count($row_data) + 1, 'valign' => 'top');
+        $row[] = array('data' => '<strong>' . check_plain($node->webform['components'][$cid]['name']) . '</strong>', 'colspan' => '10');
+      }
+      $rows = array_merge($rows, array_merge(array($row), $row_data));
+    }
+  }
+
+  $num_no_checkout = db_result(db_query("SELECT COUNT(*) FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $node->nid));
+  $total_submissions = db_result(db_query("SELECT COUNT(DISTINCT sid) FROM {webform_submitted_data} WHERE nid = %d", $node->nid));
+  
+  $rows[] = array(array('data' => '<strong>$</strong>', 'rowspan' => 4, 'valign' => 'top'), array('data' => '<strong>Checkout statistics</strong>', 'colspan' => 10));
+  $rows[] = array(t('Did not complete checkout'), $num_no_checkout);
+  $rows[] = array(t('Completed checkout'), $total_submissions - $num_no_checkout);
+  $rows[] = array('<strong>' . t('Total submissions') . '</strong>', $total_submissions);
+
+  return theme('table', $header, $rows);
+}
+
+/****************************************/
+
+/*function uc_webform_product_analysis($node) {
   dpm($node, "Node");
   $order_status_cid = 0;
   $cids = array();
 
   foreach ($node->webform['components'] as $component) {
-    if (($component['type'] == 'product') || ($component['type'] == 'product')) {
+    if (($component['type'] == 'product') || ($component['type'] == 'product_list')) {
       $cids[] = $component['cid'];
     }
 
@@ -68,21 +224,24 @@ function uc_webform_product_analysis($node) {
 
   if (!empty($cids)) {
     $results = db_query("SELECT * FROM {webform_submitted_data} WHERE nid = %d", $node->nid);
-    $num_no_checkout = db_result(db_query("SELECT sid, count(data) FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $node->nid));
+    $num_no_checkout = db_result(db_query("SELECT COUNT(*) FROM {webform_submitted_data} WHERE nid = %d AND data = 'Did not complete checkout'", $node->nid));
+    $num_checkout_complete = db_result(db_query("SELECT COUNT(DISTINCT sid) FROM {webform_submitted_data} WHERE nid = %d", $node->nid));
     
 
 
-    return theme('uc_webform_product_analysis', $node, $num_no_checkout, $order_status_cid);
+    return theme('uc_webform_product_analysis', $node, $num_no_checkout, $order_status_cid, $num_checkout_complete);
   }
   else {
     return t('There are no products included in this webform.');
   }
 }
 
-function theme_uc_webform_product_analysis($node) {
-  return 'Yikes!';
+function theme_uc_webform_product_analysis($node, $num_no_checkout, $order_status_cid, $num_checkout_complete) {
+  return "$num_no_checkout - $num_checkout_complete - $order_status_cid - Yikes!";
 //theme('table', $header, $rows);
-}
+}*/
+
+/******************************************/
 
 /**
  * Implementation of hook_theme().
@@ -970,13 +1129,6 @@ function _webform_defaults_product() {
 function _webform_edit_product($component) {
   $form = array();
 
-  // Get a list of products
-  $types = uc_product_types();
-  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
-  while ($row = db_fetch_object($result)) {
-    $products[$row->nid] = $row->title;
-  }
-
   $form['value'] = array(
     '#type' => 'textfield',
     '#title' => t('Default Quantity'),
@@ -991,7 +1143,7 @@ function _webform_edit_product($component) {
     '#title' => t('Product'),
     '#default_value' => $component['extra']['product'],
     '#weight' => -3,
-    '#size' => 30,
+    '#size' => 60,
     '#description' => t('Please select a product.'),
     '#autocomplete_path' => 'uc_webform/autocomplete',
   );
