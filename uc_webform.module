@@ -41,7 +41,8 @@ function _uc_webform_autocomplete_products($string = '') {
   $matches = array();
   $product_types = uc_product_types();
 
-  $result = db_query_range("SELECT nid, title FROM {node} WHERE type IN ('". implode("','", $product_types) ."') AND title LIKE '%%%s%'", $string, 0, 10);
+  // I need to limit the users selection to only those products that do *not* contain attributes.
+  $result = db_query_range("SELECT nid, title FROM {node} WHERE type IN ('". implode("','", $product_types) ."') AND title LIKE '%%%s%' AND nid NOT IN (SELECT nid FROM {uc_product_attributes})", $string, 0, 10);
 
   while ($product = db_fetch_object($result)) {
     $matches[$product->nid] = check_plain($product->title);
@@ -749,7 +750,8 @@ function _webform_edit_product_list($component) {
   $form = array();
   $types = uc_product_types();
 
-  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") " ."ORDER BY title", $types);
+  // I need to limit the users selection to only those products that do *not* contain attributes.
+  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") AND nid NOT IN (SELECT nid FROM {uc_product_attributes}) ORDER BY title", $types);
 
   while ($row = db_fetch_object($result)) {
     $products[$row->nid] = check_plain($row->title);
@@ -761,7 +763,7 @@ function _webform_edit_product_list($component) {
     '#title' => t('Products'),
     '#default_value' => $component['extra']['products'],
     '#multiple' => TRUE,
-    '#description' => t('Please select your products.'),
+    '#description' => t('Please select your products. Only products without attributes are displayed.'),
     '#weight' => -3,
     '#size' => 20,
     '#required' => TRUE,
@@ -1116,7 +1118,7 @@ function _webform_edit_product($component) {
     '#default_value' => $component['extra']['product'],
     '#weight' => -3,
     '#size' => 60,
-    '#description' => t('Please select a product.'),
+    '#description' => t('Please select a product. Only products that do not contain attributes will be displayed.'),
     '#autocomplete_path' => 'uc_webform/autocomplete',
   );
   $form['display']['width'] = array(
