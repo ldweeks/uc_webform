@@ -574,7 +574,7 @@ function _uc_webform_product_options() {
 
 function uc_webform_webform_component_info() {
   return array(
-    'product_list' = array(
+    'product_list' => array(
       'label' => t('Product list'),
       'description' => t('Add a list of products to your webform.'),
       'features' => array(
@@ -584,7 +584,7 @@ function uc_webform_webform_component_info() {
       ),
       'file' => 'components/product_list.inc',
     ),
-    'product' = array(
+    'product' => array(
       'label' => t('Product'),
       'description' => t('Add a single product to your webform.'),
       'features' => array(
@@ -594,7 +594,7 @@ function uc_webform_webform_component_info() {
       ),
       'file' => 'components/product.inc',
     ),
-    'product_grid' = array(
+    'product_grid' => array(
       'label' => t('Product Grid'),
       'description' => t('Add a grid of products that contain attributes. Users select options.'),
       'features' => array(
