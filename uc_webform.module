@@ -595,7 +595,7 @@ function uc_webform_webform_component_info() {
       'file' => 'components/product.inc',
     ),
     'product_grid' => array(
-      'label' => t('Product Grid'),
+      'label' => t('Product grid'),
       'description' => t('Add a grid of products that contain attributes. Users select options.'),
       'features' => array(
         'csv' => TRUE,
