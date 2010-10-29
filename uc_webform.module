@@ -47,10 +47,10 @@ function _uc_webform_autocomplete_products($string = '') {
   $product_types = uc_product_types();
 
   // I need to limit the users selection to only those products that do *not* contain attributes.
-  $result = db_query_range("SELECT nid, title FROM {node} WHERE type IN ('". implode("','", $product_types) ."') AND title LIKE '%%%s%' AND nid NOT IN (SELECT nid FROM {uc_product_attributes})", $string, 0, 10);
+  $result = db_query_range("SELECT n.nid, n.title, p.model FROM {node} AS n INNER JOIN {uc_products} AS p ON n.nid = p.nid WHERE n.type IN ('". implode("','", $product_types) ."') AND n.title LIKE '%%%s%' AND n.nid NOT IN (SELECT nid FROM {uc_product_attributes}) ", $string, 0, 10);
 
   while ($product = db_fetch_object($result)) {
-    $matches[$product->nid] = check_plain($product->title);
+    $matches[$product->nid . '_' . $product->model] = check_plain($product->title);
   }
 
   print drupal_to_js($matches);
@@ -134,9 +134,9 @@ function _uc_webform_product_orders($component, $order_status_cid) {
     }
   }
 
-  $product_node = node_load($component['extra']['product']);
+  $product_info = explode('_', $component['extra']['product'], 2);
 
-  $rows[0] = array(t($product_node->model), $total);
+  $rows[0] = array(t($product_info[1]), $total);
 
   return $rows;
 }
@@ -662,10 +662,13 @@ function uc_webform_webform_submission_insert($node, $submission) {
           $qty = (integer) $submission->data[$key]['value'][2];
 
           $component_data = unserialize(db_result(db_query('SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d', $component['cid'], $node->nid)));
-          $product = $component_data['product'];
+
+          // $product_info will contain an array with 
+          // the product node ID and the selected model (sku).
+          $product_info = explode('_', $component_data['product'], 2);
 
           if ($qty > 0) {
-            uc_cart_add_item($product, $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
+            uc_cart_add_item($product_info[0], $qty, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product', 'webform_cid' => $component['cid']));
           }
         }
       }

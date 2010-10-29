@@ -75,9 +75,10 @@ function _webform_edit_product($component) {
 function _webform_render_product($component, $value = NULL) {
 
   $stock_description = "";
-  $node = node_load($component['extra']['product']);
-  $sku_description = '{' . $node->model . '}' . '<br />';
-  $stock_level = uc_stock_level($node->model);
+  $product_info = explode('_', $component['extra']['product'], 2);
+  $node = node_load($product_info[0]);
+  $sku = $product_info[1];
+  $stock_level = uc_stock_level($sku);
 
   // Check stock levels. The product is only selectable if it is in stock.
   if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
@@ -89,12 +90,13 @@ function _webform_render_product($component, $value = NULL) {
       '#title' => $component['name'],
       '#weight' => $component['weight'],
       '#size' => $component['extra']['width'],
-      '#description' => $sku_description . $component['extra']['description'],
+      '#description' => $component['extra']['description'],
       '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
       '#field_prefix' => t('Quantity:') . ' ',
       '#field_suffix' => theme('uc_webform_product', $product),
       '#required' => $component['mandatory'],
       '#disabled' => $component['extra']['disabled'],
+      '#sku' => $sku,
       '#element_validate' => array('_webform_render_product_validate'),
     );
 
@@ -143,15 +145,9 @@ function _webform_render_product_validate($element, &$form_state) {
   }
 
   // Check to see that we have enough in stock.
-  $matches = array();
-  preg_match_all('/{[a-zA-Z0-9]*}/', $element['#description'], $matches);
-
-  if (isset($matches[0][0])) {
-    $sku = trim($matches[0][0], '{}');
-    $stock = uc_stock_level($sku);
-    if (($stock !== FALSE) && ($stock < $element['#value'])) {
-      form_error($element, t("Only !stock of Sku: !sku remain. Please enter a different amount.", array('!stock' => $stock, '!sku' => $sku)));
-    }
+  $stock = uc_stock_level($element['#sku']);
+  if (($stock !== FALSE) && ($stock < $element['#value'])) {
+    form_error($element, t("Only !stock of SKU: !sku remain. Please enter a different amount.", array('!stock' => $stock, '!sku' => $element['#sku'])));
   }
 }
 
@@ -160,8 +156,10 @@ function _webform_render_product_validate($element, &$form_state) {
  */
 function _webform_display_product($component, $value, $format = 'html') {
 
-  $node = node_load($component['extra']['product']);
-  $product_info = array(t('Title:') . ' ' . $node->title . ', ' . t('SKU:') . ' ' . $node->model . ', ' . t('Quantity:') . ' ' . $value[2]);
+  $product_info = explode('_', $component['extra']['product'], 2);
+
+  $node = node_load($product_info[0]);
+  $result_info = array(t('Title:') . ' ' . $node->title . '<br/>' . t('SKU:') . ' ' . $product_info[1] . '<br/>' . t('Quantity:') . ' ' . $value[2]);
 
   return array(
     '#title' => $component['name'],
@@ -171,7 +169,7 @@ function _webform_display_product($component, $value, $format = 'html') {
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
     '#format' => $format,
-    '#value' => $product_info,
+    '#value' => $result_info,
   );
 }
 
@@ -233,10 +231,11 @@ function _webform_analysis_product($component, $sids = array()) {
       $total += $result['data'];
     }
   }
+  $product_info = explode('_', $component['extra']['product'], 2);
 
-  $product_node = node_load($component['extra']['product']);
+  $product_node = node_load($product_info[0]);
 
-  $rows[0] = array(t($product_node->model), $total);
+  $rows[0] = array(t($product_info[1]), $total);
 
   return $rows;
 }
@@ -253,11 +252,11 @@ function _webform_table_product($component, $value) {
  */
 function _webform_csv_headers_product($component, $export_options) {
   $header = array();
-  $node = node_load($component['extra']['product']);
+  $product_info = explode('_', $component['extra']['product'], 2);
 
   $header[0] = '';
   $header[1] = $component['name'];
-  $header[2] = $node->model . ' ' . t('Quantity');
+  $header[2] = $product_info[1] . ' ' . t('Quantity');
   return $header;
 }
 
