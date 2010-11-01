@@ -121,6 +121,7 @@ function uc_webform_product_analysis($node, $sids = array(), $analysis_component
 
 /**
  * Generate statistics for product components, limited to checked out webforms.
+ * This information is displayed under the "orders" tab of the webform results.
  *
  */
 function _uc_webform_product_orders($component, $order_status_cid) {
@@ -154,6 +155,7 @@ function _uc_webform_product_orders($component, $order_status_cid) {
 
 /**
  * Generate statistics for product_list components, limited to checked out webforms.
+ * This information is displayed under the "orders" tab of the webform results.
  *
  */
 function _uc_webform_product_list_orders($component, $order_status_cid) {
@@ -186,8 +188,9 @@ function _uc_webform_product_list_orders($component, $order_status_cid) {
 
   $rows = array();
   $count = 0;
-  foreach ($product_results as $nid => $qty) {
-    $product_node = node_load($nid);
+  foreach ($product_results as $product => $qty) {
+    $product_info = explode('_', $product, 2);
+    $product_node = node_load($product_info[0]);
     $rows[$count] = array(t($product_node->model), $qty);
     $count++;
   }
@@ -642,9 +645,11 @@ function uc_webform_webform_submission_insert($node, $submission) {
       if ($component['type'] == 'product_list') {
         if (array_key_exists($component['cid'], $submission->data)) {
           $key = $component['cid'];
-          foreach ($submission->data[$key]['value'] as $product) {
-            if ($product != 0) {
-              uc_cart_add_item($product, 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list', 'webform_cid' => $component['cid']));
+          foreach ($submission->data[$key]['value'] as $val) {
+            // This is all very dependent on the way that the product data is stored in the webform_submitted_data table. Take a look there, and also check out the uc_webform README.
+              $product_info = explode('_', $val, 2);
+            if (is_numeric($product_info[0])) {
+              uc_cart_add_item($product_info[0], 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list', 'webform_cid' => $component['cid']));
             }
           }
         }
