@@ -6,6 +6,40 @@
  */
 
 /**
+ * Implementation of hook_theme().
+ * Module-specific
+ * Implementation of _webform_theme_component().
+ * This allows each Webform component to add information into hook_theme().
+ */
+function _webform_theme_product() {
+  return array(
+    'uc_webform_display_product' => array(
+      'arguments' => array('element' => NULL),
+    ),
+    'uc_webform_render_product' => array(
+      'arguments' => array('product' => NULL),
+    ),
+  );
+}
+
+/**
+ * Format the text output for the product component.
+ */
+function theme_uc_webform_display_product($element) {
+  return $element['#value'][0];
+}
+
+/**
+ * Theme the the display of an individual product when rendered in a webform.
+ */
+function theme_uc_webform_render_product($product) {
+
+  $output = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . $product['price'] . '</span>';
+
+  return $output;
+}
+
+/**
  * Implementation of _webform_defaults_component().
  */
 function _webform_defaults_product() {
@@ -93,7 +127,7 @@ function _webform_render_product($component, $value = NULL) {
       '#description' => $component['extra']['description'],
       '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
       '#field_prefix' => t('Quantity:') . ' ',
-      '#field_suffix' => theme('uc_webform_product', $product),
+      '#field_suffix' => theme('uc_webform_render_product', $product),
       '#required' => $component['mandatory'],
       '#disabled' => $component['extra']['disabled'],
       '#sku' => $sku,
@@ -119,16 +153,6 @@ function _webform_render_product($component, $value = NULL) {
   }
 
   return $element;
-}
-
-/**
- * Theme the the display of an individual product when rendered in a webform.
- */
-function theme_uc_webform_product($product) {
-
-  $output = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . $product['price'] . '</span>';
-
-  return $output;
 }
 
 /**
@@ -171,27 +195,6 @@ function _webform_display_product($component, $value, $format = 'html') {
     '#format' => $format,
     '#value' => $result_info,
   );
-}
-
-/**
- * Implementation of hook_theme().
- * Module-specific
- * Implementation of _webform_theme_component().
- * This allows each Webform component to add information into hook_theme().
- */
-function _webform_theme_product() {
-  return array(
-    'uc_webform_display_product' => array(
-      'arguments' => array('element' => NULL),
-    ),
-  );
-}
-
-/**
- * Format the text output for the product component.
- */
-function theme_uc_webform_display_product($element) {
-  return $element['#value'][0];
 }
 
 /**

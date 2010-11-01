@@ -11,7 +11,7 @@ webform_component_include('select');
 
 /**
  * Implementation of _webform_defaults_component().
- */
+ *
 function _webform_defaults_product_grid() {
   return array(
     'name' => '',
@@ -35,7 +35,7 @@ function _webform_defaults_product_grid() {
 
 /**
  * Implementation of _webform_theme_component().
- */
+ *
 function _webform_theme_product_grid() {
   return array(
     'webform_grid' => array(
@@ -49,7 +49,7 @@ function _webform_theme_product_grid() {
 
 /**
  * Implementation of _webform_edit_component().
- */
+ *
 function _webform_edit_product_grid($component) {
   $form = array();
   $types = uc_product_types();
@@ -79,7 +79,7 @@ function _webform_edit_product_grid($component) {
 
 /**
  * Implementation of _webform_render_component().
- */
+ *
 function _webform_render_grid($component, $value = NULL, $filter = TRUE) {
   $element = array(
     '#title' => $filter ? _webform_filter_xss($component['name']) : $component['name'],
@@ -132,7 +132,7 @@ function _webform_render_grid($component, $value = NULL, $filter = TRUE) {
 
 /**
  * Implementation of _webform_display_component().
- */
+ *
 function _webform_display_grid($component, $value, $format = 'html') {
   $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
   $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
@@ -164,7 +164,7 @@ function _webform_display_grid($component, $value, $format = 'html') {
 
 /**
  * Format the text output for this component.
- */
+ *
 function theme_webform_display_grid($element) {
   $component = $element['#webform_component'];
   $format = $element['#format'];
@@ -205,7 +205,7 @@ function theme_webform_display_grid($element) {
 
 /**
  * Implementation of _webform_analysis_component().
- */
+ *
 function _webform_analysis_grid($component, $sids = array()) {
   // Generate the list of options and questions.
   $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
@@ -251,7 +251,7 @@ function _webform_analysis_grid($component, $sids = array()) {
 
 /**
  * Implementation of _webform_table_component().
- */
+ *
 function _webform_table_grid($component, $value) {
   $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
   $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
@@ -269,7 +269,7 @@ function _webform_table_grid($component, $value) {
 
 /**
  * Implementation of _webform_csv_headers_component().
- */
+ *
 function _webform_csv_headers_grid($component, $export_options) {
   $header = array();
   $header[0] = array('');
@@ -292,7 +292,7 @@ function _webform_csv_headers_grid($component, $export_options) {
 
 /**
  * Implementation of _webform_csv_data_component().
- */
+ *
 function _webform_csv_data_grid($component, $export_options, $value) {
   $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
   $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
@@ -334,4 +334,4 @@ function theme_webform_grid($element) {
 
   $option_count = count($header) - 1;
   return theme('form_element', $element, theme('table', $header, $rows, array('class' => 'webform-grid webform-grid-' . $option_count)));
-}
+}*/

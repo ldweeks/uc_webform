@@ -26,10 +26,38 @@ function _webform_defaults_product_list() {
  */
 function _webform_theme_product_list() {
   return array(
-    'webform_display_product_list' => array(
+    'uc_webform_display_product_list' => array(
       'arguments' => array('element' => NULL),
     ),
+    'uc_webform_render_product_list' => array(
+      'arguments' => array('products' => NULL),
+    ),
   );
+}
+
+/**
+ * Theme function for when a product is displayed in a webform submission.
+ */
+function theme_uc_webform_display_product_list($element) {
+
+  if (isset($element['#value'])) {
+    $output = (count($element['#value']) > 1) ? theme('item_list', $element['#value']) : $element['#value'][0];
+  }
+
+  return $output;
+}
+
+/**
+ * Theme function for a product when it is rendered as a part of a list in a form.
+ *
+ */
+function theme_uc_webform_render_product_list($products) {
+  $output = array();
+
+  foreach ($products as $key => $product) {
+    $output[$key] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['price'] . '</span>';
+  }
+  return $output;
 }
 
 /**
@@ -104,7 +132,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
-      '#options' => theme('uc_webform_product_list', $products),
+      '#options' => theme('uc_webform_render_product_list', $products),
       //'#element_validate' => array('_webform_render_product_list_validate'),
     );
   }
@@ -117,7 +145,7 @@ function _webform_render_product_list($component, $value = NULL) {
       '#prefix' => '<div class="webform-component-'. $component['type'] .'" id="webform-component-'. $component['form_key'] .'">',
       '#suffix' => '</div>',
       '#required' => $component['mandatory'],
-      '#options' => theme('uc_webform_product_list', $products),
+      '#options' => theme('uc_webform_render_product_list', $products),
       //'#element_validate' => array('_webform_render_product_list_validate'),
     );
   }
@@ -141,20 +169,6 @@ function _webform_render_product_list_validate($element, &$form_state) {
   }
 }
 
-
-/**
- * Theme function for a product when it is rendered as a part of a list in a form.
- *
- */
-function theme_uc_webform_product_list($products) {
-  $output = array();
-
-  foreach ($products as $key => $product) {
-    $output[$key] = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . $product['price'] . '</span>';
-  }
-  return $output;
-}
-
 /**
  * Display the result of a submission for a component.
  *
@@ -176,25 +190,13 @@ function _webform_display_product_list($component, $value, $format = 'html') {
   return array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
-    '#theme' => 'webform_display_product_list',
+    '#theme' => 'uc_webform_display_product_list',
     '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
     '#post_render' => array('webform_element_wrapper'),
     '#component' => $component,
     '#format' => $format,
     '#value' => $products,
   );
-}
-
-/**
- * Format the text output for the product_list component.
- */
-function theme_webform_display_product_list($element) {
-
-  if (isset($element['#value'])) {
-    $output = (count($element['#value']) > 1) ? theme('item_list', $element['#value']) : $element['#value'][0];
-  }
-
-  return $output;
 }
 
 /**

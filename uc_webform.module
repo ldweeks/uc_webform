@@ -39,6 +39,17 @@ function uc_webform_menu() {
 }
 
 /**
+ * Implementation of hook_theme().
+ */
+function uc_webform_theme() {
+  return array(
+    'uc_webform_product_analysis' => array(
+      'arguments' => array('node' => NULL),
+    ),
+  );
+}
+
+/**
  * Provides an auto-complete list of products that do not contain attributes or options.
  *
  */
@@ -221,23 +232,6 @@ function theme_uc_webform_product_analysis($node, $data, $sids = array(), $analy
   $rows[] = array('<strong>' . t('Total webform submissions') . '</strong>', $total_submissions);
 
   return theme('table', $header, $rows);
-}
-
-/**
- * Implementation of hook_theme().
- */
-function uc_webform_theme() {
-  return array(
-    'uc_webform_products' => array(
-      'arguments' => array('products' => NULL),
-    ),
-    'uc_webform_product' => array(
-      'arguments' => array('product' => NULL),
-    ),
-    'uc_webform_product_analysis' => array(
-      'arguments' => array('node' => NULL),
-    ),
-  );
 }
 
 /**
