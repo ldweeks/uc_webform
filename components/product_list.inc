@@ -228,49 +228,17 @@ function _webform_submit_product_list($component, $value) {
 /**
  * Calculate and returns statistics about results for this component.
  *
- * This is mostly useless right now because it doesn't filter for completed checkouts.
+ * This does not filter for completed checkouts. _uc_webform_product_list_orders does, though.
  */
 function _webform_analysis_product_list($component, $sids = array(), $single = FALSE) {
 
-  $options = _uc_webform_products($component);
-  $show_other_results = $single;
-
-  $sid_placeholders = count($sids) ? array_fill(0, count($sids), "'%s'") : array();
-  $sid_filter = count($sids) ? " AND sid IN (" . implode(",", $sid_placeholders) . ")" : "";
-
-  $option_operator = $show_other_results ? 'NOT IN' : 'IN';
-  $placeholders = count($options) ? array_fill(0, count($options), "'%s'") : array();
-  $query = 'SELECT data, count(data) as datacount ' .
-    ' FROM {webform_submitted_data} ' .
-    ' WHERE nid = %d ' .
-    ' AND cid = %d ' .
-    " AND data != ''" . $sid_filter .
-    ($placeholders ? ' AND data ' . $option_operator . ' (' . implode(',', $placeholders) . ')' : '') .
-    ' GROUP BY data ';
-
-  $count_query = 'SELECT count(*) as datacount ' .
-    ' FROM {webform_submitted_data} ' .
-    ' WHERE nid = %d ' .
-    ' AND cid = %d ' .
-    " AND data != ''" . $sid_filter;
-
-  $result = db_query($query, array_merge(array($component['nid'], $component['cid']), $sids, array_keys($options)));
   $rows = array();
-  $normal_count = 0;
-  while ($data = db_fetch_array($result)) {
-    $display_option = $single ? $data['data'] : $options[$data['data']];
-    $rows[$data['data']] = array(_webform_filter_xss($display_option), $data['datacount']);
-    $normal_count += $data['datacount'];
-  }
 
-  if (!$show_other_results) {
-    // Order the results according to the normal options array.
-    $ordered_rows = array();
-    foreach (array_intersect_key($options, $rows) as $key => $label) {
-      $ordered_rows[] = $rows[$key];
-    }
+  $results = db_query('SELECT data, count(data) as datacount FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND no <> 0 GROUP BY data', $component['nid'], $component['cid']);
 
-    $rows = $ordered_rows;
+  while ($product = db_fetch_array($results)) {
+    $product_info = explode('_', $product['data'], 2);
+    $rows[] = array(0 => $product_info[1], 1 => $product['datacount']);
   }
 
   return $rows;
@@ -371,8 +339,8 @@ function _uc_webform_products($component) {
   $count = 0;
 
   foreach ($component['extra']['products'] as $product) {
-    $node = node_load($product);
-    $options["$node->nid"] = "$node->model";
+    $product_info = explode('_', $product, 2);
+    $options[$product_info[0]] = $product_info[1];
     $count++;
   }
 
