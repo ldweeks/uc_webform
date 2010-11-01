@@ -252,9 +252,11 @@ function _webform_table_product_list($component, $value) {
   $results = "";
 
   if (isset($value)) {
-    foreach ($value as $product) {
-      $node = node_load($product);
-      $results .= "$node->model<br />";
+    foreach ($value as $key => $product) {
+      if ($key != 0) {
+        $product_info = explode('_', $product, 2);
+        $results .= "$product_info[1]<br />";
+      }
     }
   }
 
@@ -271,20 +273,19 @@ function _webform_csv_headers_product_list($component, $export_options) {
     2 => array(),
   );
 
-  $options = _uc_webform_products($component);
-
   if ($component['extra']['multiple'] && $export_options['select_format'] == 'separate') {
     $headers[0][] = '';
     $headers[1][] = $component['name'];
 
     $count = 0;
-    foreach ($options as $value) {
+    foreach ($component['extra']['products'] as $product) {
       if ($count != 0) {
         // Empty column per sub-field in main header.
         $headers[0][] = '';
         $headers[1][] = '';
       }
-      $headers[2][] = $value;
+      $product_info = explode('_', $product, 2);
+      $headers[2][] = $product_info[1];
       $count++;
     }
   }
@@ -293,6 +294,7 @@ function _webform_csv_headers_product_list($component, $export_options) {
     $headers[1][] = '';
     $headers[2][] = $component['name'];
   }
+
   return $headers;
 }
 
@@ -318,31 +320,17 @@ function _webform_csv_data_product_list($component, $export_options, $value) {
       else {
         $data_string;
         foreach ($value as $product) {
-          $node = node_load($product);
-          $data_string .= $node->model . ",";
+          $product_info = explode('_', $product, 2);
+          $data_string .= $product_info[1] . ",";
         }
         $data[] = rtrim($data_string, ',');
       }
       break;
     case 'radio_product_list';
-      $node = node_load($value[1]);
-      $data[] = $node->model;
+      $product_info = explode('_', $value[1], 2);
+      $data[] = $product_info[1];
       break;
   }
 
   return $data;
-}
-
-function _uc_webform_products($component) {
-
-  $options = array();
-  $count = 0;
-
-  foreach ($component['extra']['products'] as $product) {
-    $product_info = explode('_', $product, 2);
-    $options[$product_info[0]] = $product_info[1];
-    $count++;
-  }
-
-  return $options;
 }
