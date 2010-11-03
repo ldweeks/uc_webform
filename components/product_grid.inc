@@ -10,8 +10,57 @@
 webform_component_include('select');
 
 /**
+ * Implementation of _webform_theme_component().
+ */
+function _webform_theme_product_grid() {
+  return array(
+    'uc_webform_product_grid' => array(
+      'arguments' => array('grid_element' => NULL),
+    ),
+    //'webform_display_grid' => array(
+    //  'arguments' => array('element' => NULL),
+    //),
+  );
+}
+
+function theme_uc_webform_product_grid($element) {
+  dd($element, "Product Grid Element in Theme Function");
+  $rows = array();
+  $header = array(array('data' => '', 'class' => 'uc_webform-product-grid-product'));
+  $first = TRUE;
+  /*foreach (element_children($element) as $key) {
+    $product_element = $element[$key];
+
+    // Set the header for the table.
+    if ($first) {
+      foreach ($product_element['#options'] as $option) {
+        $header[] = array('data' => _webform_filter_xss($option), 'class' => 'checkbox webform-grid-option');
+      }
+      $first = FALSE;
+    }
+
+    // Create a row with the question title.
+    $row = array(array('data' => _webform_filter_xss($question_element['#title']), 'class' => 'webform-grid-question'));
+
+    // Render each radio button in the row.
+    $radios = expand_radios($question_element);
+    foreach (element_children($radios) as $key) {
+      unset($radios[$key]['#title']);
+      $row[] = array('data' => drupal_render($radios[$key]), 'class' => 'checkbox webform-grid-option');
+    }
+    $rows[] = $row;
+  }*/
+
+  $option_count = count($header) - 1;
+  return theme('form_element', $element, theme('table', $header, $rows, array('class' => 'uc_webform-product-grid uc_webform-product-grid-' . $option_count)));
+}
+
+
+
+
+/**
  * Implementation of _webform_defaults_component().
- *
+ */
 function _webform_defaults_product_grid() {
   return array(
     'name' => '',
@@ -32,33 +81,19 @@ function _webform_defaults_product_grid() {
   );
 }
 
-
-/**
- * Implementation of _webform_theme_component().
- *
-function _webform_theme_product_grid() {
-  return array(
-    'webform_grid' => array(
-      'arguments' => array('grid_element' => NULL),
-    ),
-    'webform_display_grid' => array(
-      'arguments' => array('element' => NULL),
-    ),
-  );
-}
-
 /**
  * Implementation of _webform_edit_component().
- *
+ */
 function _webform_edit_product_grid($component) {
   $form = array();
-  $types = uc_product_types();
+  $product_types = uc_product_types();
 
-  // I need to limit the users selection to only those products that do *not* contain attributes.
-  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") AND nid IN (SELECT nid FROM {uc_product_attributes}) ORDER BY title", $types);
+  // I need to limit the users selection to only those products that *do* contain attributes.
+  $results = db_query("SELECT n.nid, n.title, p.model FROM {node} AS n INNER JOIN {uc_products} AS p ON n.nid = p.nid WHERE n.nid IN (SELECT nid FROM {uc_product_attributes}) ORDER BY n.title");
 
-  while ($row = db_fetch_object($result)) {
-    $products[$row->nid] = check_plain($row->title);
+  $products = array();
+  while ($product = db_fetch_array($results)) {
+    $products[$product['nid'] . '_' . $product['model']] = check_plain($product['title']);
   }
 
   // Most options are stored in the "extra" array, which stores any settings unique to a particular component type.
@@ -67,7 +102,7 @@ function _webform_edit_product_grid($component) {
     '#title' => t('Products'),
     '#default_value' => $component['extra']['products'],
     '#multiple' => TRUE,
-    '#description' => t('Please select your products. Only products with an attribute are displayed.'),
+    '#description' => t('Please select your products. Only products with attributes are displayed.'),
     '#weight' => -3,
     '#size' => 20,
     '#required' => TRUE,
@@ -79,53 +114,71 @@ function _webform_edit_product_grid($component) {
 
 /**
  * Implementation of _webform_render_component().
- *
-function _webform_render_grid($component, $value = NULL, $filter = TRUE) {
+ */
+function _webform_render_product_grid($component) {
+
+  $product_nodes = array();
+  $stock_description = "";
+
+  foreach ($component['extra']['products'] as $val) {
+    $product_info = explode('_', $val, 2);
+    $stock_level = uc_stock_level($product_info[1]);
+
+    // Check stock levels. The product is only selectable if it is in stock.
+    if (($stock_level === FALSE) or (intval($stock_level) > 0)) {
+      $product_nodes[$val] = node_load($product_info[0]);
+    }
+    else {
+      $node = node_load($product_info[0]);
+      $stock_description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
+    }
+  }
+
+  dpm($product_nodes, "Product Grid Nodes");
+
   $element = array(
-    '#title' => $filter ? _webform_filter_xss($component['name']) : $component['name'],
-    '#title_display' => $component['extra']['title_display'] ? $component['extra']['title_display'] : 'before',
+    '#title' => $component['name'],
+    '#title_display' => $component['extra']['title_display'],
     '#required' => $component['mandatory'],
     '#weight' => $component['weight'],
-    '#description' => $filter ? _webform_filter_descriptions($component['extra']['description']) : $component['extra']['description'],
-    '#theme' => 'webform_grid',
+    '#description' => ($component['extra']['description']),
+    '#theme' => 'uc_webform_product_grid',
     '#theme_wrappers' => array('webform_element_wrapper'),
     '#pre_render' => array('webform_element_title_display'),
     '#post_render' => array('webform_element_wrapper'),
     '#webform_component' => $component,
   );
 
-  $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
-  $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
-
-  if ($component['extra']['optrand']) {
-    _webform_shuffle_options($options);
+  $products = array();
+  foreach ($product_nodes as $key => $product_node) {
+    // These products will appear in the header of the grid.
+    $products[$key] = $product_node->title;
   }
 
-  if ($component['extra']['qrand']) {
-    _webform_shuffle_options($questions);
-  }
+  $element[$key]['#options'] = $products;
+//---------------------NOW IN NEED TO FIGURE OUT HOW TO MATCH THE product options down the left for each product across the top.
 
-  foreach ($questions as $key => $question) {
-    if ($question != '') {
-      $element[$key] = array(
-        '#title' => $question,
-        '#required' => $component['mandatory'],
-        '#options' => $options,
-        '#type' => 'radios',
-        '#process' => array('expand_radios', 'webform_expand_select_ids'),
-
-        // Webform handles validation manually.
-        '#validated' => TRUE,
-        '#webform_validated' => FALSE,
-      );
+    // These "product_options" are the actual *product options* for a particular product.
+    // They will appear on the left of a grid.
+    $product_options = $product_node->attributes[1]->options;
+    foreach ($product_options as $product_option) {
+      $options[$option->oid] = $option->name;
     }
+
+  foreach ($product_options as $option) {
+    $options[$option->oid] = $option->name;
   }
 
-  if (isset($value)) {
-    foreach (element_children($element) as $key) {
-      $element[$key]['#default_value'] = isset($value[$key]) ? $value[$key] : NULL;
-    }
+  foreach ($product_nodes as $key => $product_node) {
+    $element[$key] = array(
+      '#title' => $product_node->title,
+      '#required' => $component['mandatory'],
+      '#type' => 'radios',
+      '#process' => array('expand_radios', 'webform_expand_select_ids'),
+    );
   }
+
+  dd($element, "Product Grid Element as returned from Render");
 
   return $element;
 }
@@ -303,35 +356,4 @@ function _webform_csv_data_grid($component, $export_options, $value) {
     }
   }
   return $return;
-}
-
-function theme_webform_grid($element) {
-  $rows = array();
-  $header = array(array('data' => '', 'class' => 'webform-grid-question'));
-  $first = TRUE;
-  foreach (element_children($element) as $key) {
-    $question_element = $element[$key];
-
-    // Set the header for the table.
-    if ($first) {
-      foreach ($question_element['#options'] as $option) {
-        $header[] = array('data' => _webform_filter_xss($option), 'class' => 'checkbox webform-grid-option');
-      }
-      $first = FALSE;
-    }
-
-    // Create a row with the question title.
-    $row = array(array('data' => _webform_filter_xss($question_element['#title']), 'class' => 'webform-grid-question'));
-
-    // Render each radio button in the row.
-    $radios = expand_radios($question_element);
-    foreach (element_children($radios) as $key) {
-      unset($radios[$key]['#title']);
-      $row[] = array('data' => drupal_render($radios[$key]), 'class' => 'checkbox webform-grid-option');
-    }
-    $rows[] = $row;
-  }
-
-  $option_count = count($header) - 1;
-  return theme('form_element', $element, theme('table', $header, $rows, array('class' => 'webform-grid webform-grid-' . $option_count)));
 }*/
