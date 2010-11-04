@@ -531,39 +531,6 @@ function uc_webform_cart_item($op, &$item) {
  */
 
 /**
- * Define callbacks that can be used as select list options.
- */
-function uc_webfom_webform_select_options_info() {
-  $items = array();
-
-  $items['products'] = array(
-    'title' => t('Products'),
-    'options callback' => '_uc_webform_product_options',
-  );
-
-  return $items;
-}
-
-/**
- * Option list containing products.
- */
-function _uc_webform_product_options() {
-
-  $products = array();
-
-  // http://api.ubercart.org/api/function/uc_product_types/2
-  $types = uc_product_types();
-
-  $result = db_query("SELECT nid, title FROM {node} WHERE type IN (". db_placeholders($types, 'varchar') .") ORDER BY title", $types);
-
-  while ($row = db_fetch_object($result)) {
-    $products[$row->nid] = t("$row->title");
-  }
-
-  return $products;
-}
-
-/**
  * Define components to Webform.
  *
  * Form more information: http://drupal.org/node/886014
