@@ -24,39 +24,47 @@ function _webform_theme_product_grid() {
 }
 
 function theme_uc_webform_product_grid($element) {
-  dd($element, "Product Grid Element in Theme Function");
-  $rows = array();
-  $header = array(array('data' => '', 'class' => 'uc_webform-product-grid-product'));
-  $first = TRUE;
-  /*foreach (element_children($element) as $key) {
+  $temp_rows = array();
+  $columns = array(array('data' => '', 'class' => 'uc_webform-product-grid-product'));
+
+  $option_ids = array();
+  $product_keys = element_children($element);
+
+  foreach (element_children($element) as $key) {
     $product_element = $element[$key];
 
-    // Set the header for the table.
-    if ($first) {
-      foreach ($product_element['#options'] as $option) {
-        $header[] = array('data' => _webform_filter_xss($option), 'class' => 'checkbox webform-grid-option');
+    // Create a row with the Product title.
+    $row = array(array('data' => $product_element['#title'], 'class' => 'uc_webform-product-grid-product', 'product' => "$key"));
+
+    foreach ($product_element['#options'] as $optionid => $opt_val) {
+      if (!in_array($optionid, $option_ids)) {
+        $columns[] = array('data' => $opt_val, 'class' => 'checkbox uc_webform-product-grid-option', 'oid' => $optionid);
       }
-      $first = FALSE;
+      $option_ids = $optionid;
     }
+    $temp_rows[] = $row;
+  }
 
-    // Create a row with the question title.
-    $row = array(array('data' => _webform_filter_xss($question_element['#title']), 'class' => 'webform-grid-question'));
-
-    // Render each radio button in the row.
-    $radios = expand_radios($question_element);
-    foreach (element_children($radios) as $key) {
-      unset($radios[$key]['#title']);
-      $row[] = array('data' => drupal_render($radios[$key]), 'class' => 'checkbox webform-grid-option');
+  $final_rows = array();
+  foreach ($temp_rows as $row) {
+    $product_key = $row[0]['product'];
+    $radios = expand_radios($element[$product_key]);
+    foreach ($columns as $col) {
+      if (isset($radios[$col['oid']])) {
+        unset($radios[$col['oid']]['#title']);
+        $row[] = array('data' => drupal_render($radios[$col['oid']]), 'class' => 'checkbox webform-grid-option');
+      }
+      elseif (isset($col['oid'])) {
+        $row[] = array('data' => 'n/a', 'class' => 'checkbox webform-grid-option');
+      }
     }
-    $rows[] = $row;
-  }*/
+    $final_rows[] = $row;
+  }
 
   $option_count = count($header) - 1;
-  return theme('form_element', $element, theme('table', $header, $rows, array('class' => 'uc_webform-product-grid uc_webform-product-grid-' . $option_count)));
+
+  return theme('form_element', $element, theme('table', $columns, $final_rows, array('class' => 'uc_webform-product-grid uc_webform-product-grid-' . $option_count)));
 }
-
-
-
 
 /**
  * Implementation of _webform_defaults_component().
@@ -134,8 +142,6 @@ function _webform_render_product_grid($component) {
     }
   }
 
-  dpm($product_nodes, "Product Grid Nodes");
-
   $element = array(
     '#title' => $component['name'],
     '#title_display' => $component['extra']['title_display'],
@@ -149,26 +155,7 @@ function _webform_render_product_grid($component) {
     '#webform_component' => $component,
   );
 
-  $products = array();
-  foreach ($product_nodes as $key => $product_node) {
-    // These products will appear in the header of the grid.
-    $products[$key] = $product_node->title;
-  }
-
-  $element[$key]['#options'] = $products;
-//---------------------NOW IN NEED TO FIGURE OUT HOW TO MATCH THE product options down the left for each product across the top.
-
-    // These "product_options" are the actual *product options* for a particular product.
-    // They will appear on the left of a grid.
-    $product_options = $product_node->attributes[1]->options;
-    foreach ($product_options as $product_option) {
-      $options[$option->oid] = $option->name;
-    }
-
-  foreach ($product_options as $option) {
-    $options[$option->oid] = $option->name;
-  }
-
+  // Iterate through each product that will be offered. Products will appear on the left of the grid.
   foreach ($product_nodes as $key => $product_node) {
     $element[$key] = array(
       '#title' => $product_node->title,
@@ -176,9 +163,15 @@ function _webform_render_product_grid($component) {
       '#type' => 'radios',
       '#process' => array('expand_radios', 'webform_expand_select_ids'),
     );
-  }
 
-  dd($element, "Product Grid Element as returned from Render");
+    // Iterate through each product option for each product. Product options will appear on the top of the grid.
+    $product_options = array();
+    foreach ($product_node->attributes[1]->options as $option) {
+      $product_options[$option->oid] = $option->name;
+    }
+
+    $element[$key]['#options'] = $product_options;
+  }
 
   return $element;
 }
