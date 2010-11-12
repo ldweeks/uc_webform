@@ -30,6 +30,9 @@ function theme_uc_webform_product_grid($element) {
   $option_ids = array();
   $product_keys = element_children($element);
 
+
+  // This loop creates the row at the top (which is a list of product options) and 
+  // the first column on the left (which is the product title column).
   foreach (element_children($element) as $key) {
     $product_element = $element[$key];
 
@@ -40,7 +43,7 @@ function theme_uc_webform_product_grid($element) {
       if (!in_array($optionid, $option_ids)) {
         $columns[] = array('data' => $opt_val, 'class' => 'checkbox uc_webform-product-grid-option', 'oid' => $optionid);
       }
-      $option_ids = $optionid;
+      $option_ids[] = $optionid;
     }
     $temp_rows[] = $row;
   }
@@ -147,7 +150,7 @@ function _webform_render_product_grid($component) {
     '#title_display' => $component['extra']['title_display'],
     '#required' => $component['mandatory'],
     '#weight' => $component['weight'],
-    '#description' => ($component['extra']['description']),
+    '#description' => $component['extra']['description'] . $stock_description,
     '#theme' => 'uc_webform_product_grid',
     '#theme_wrappers' => array('webform_element_wrapper'),
     '#pre_render' => array('webform_element_title_display'),
@@ -166,10 +169,12 @@ function _webform_render_product_grid($component) {
 
     // Iterate through each product option for each product. Product options will appear on the top of the grid.
     $product_options = array();
-    foreach ($product_node->attributes[1]->options as $option) {
-      $product_options[$option->oid] = $option->name;
+    foreach ($product_node->attributes as $aid => $attribute) {
+      foreach ($attribute->options as $option) {
+        // aid_oid
+        $product_options[$aid . '_' . $option->oid] = $option->name;
+      }
     }
-
     $element[$key]['#options'] = $product_options;
   }
 

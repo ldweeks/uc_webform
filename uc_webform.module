@@ -579,12 +579,10 @@ function uc_webform_webform_component_info() {
  */
 function uc_webform_webform_submission_insert($node, $submission) {
 
-  dd($submission, "Submission");
   // If the latest webform submission has products in it, remove the
   // previous webform submission products and add the new ones. Otherwise,
   // allow the form to be submitted without incident.
   foreach ($node->webform['components'] as $component) {
-    dd($component, "Component");
     if (($component['type'] == 'product_list') || ($component['type'] == 'product') || ($component['type'] == 'product_grid')) {
       $remove = TRUE;
       break;
@@ -650,7 +648,10 @@ function uc_webform_webform_submission_insert($node, $submission) {
             // This is all very dependent on the way that the product data is stored in the webform_submitted_data table. Take a look there, and also check out the uc_webform README.
             if ($prod_option) {
               $product_info = explode('_', $key, 2);
-              uc_cart_add_item($product_info[0], 1, array('attributes' => array(1 => $prod_option), 'webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_grid', 'webform_cid' => $component['cid']));
+              // The $prod_option variable actually contains both the attribute ID and the option ID
+              // in the form of a string: aid_oid
+              $option_info = explode('_', $prod_option, 2);
+              uc_cart_add_item($product_info[0], 1, array('attributes' => array($option_info[0] => $option_info[1]), 'webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_grid', 'webform_cid' => $component['cid']));
             }
           }
         }
