@@ -213,7 +213,6 @@ function _webform_display_product_grid($component, $value, $format = 'html') {
     '#value' => $products,
   );
 
-dpm($element, "Element");
   return $element;
 }
 
