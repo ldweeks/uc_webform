@@ -14,16 +14,16 @@ webform_component_include('select');
  */
 function _webform_theme_product_grid() {
   return array(
-    'uc_webform_product_grid' => array(
-      'arguments' => array('grid_element' => NULL),
+    'uc_webform_render_product_grid' => array(
+      'arguments' => array('element' => NULL),
     ),
-    //'webform_display_grid' => array(
-    //  'arguments' => array('element' => NULL),
-    //),
+    'uc_webform_display_product_grid' => array(
+      'arguments' => array('element' => NULL),
+    ),
   );
 }
 
-function theme_uc_webform_product_grid($element) {
+function theme_uc_webform_render_product_grid($element) {
   $temp_rows = array();
   $columns = array(array('data' => '', 'class' => 'uc_webform-product-grid-product'));
 
@@ -67,6 +67,16 @@ function theme_uc_webform_product_grid($element) {
   $option_count = count($header) - 1;
 
   return theme('form_element', $element, theme('table', $columns, $final_rows, array('class' => 'uc_webform-product-grid uc_webform-product-grid-' . $option_count)));
+}
+
+function theme_uc_webform_display_product_grid($element) {
+
+  if (isset($element['#value'])) {
+    $output = (count($element['#value']) > 1) ? theme('item_list', $element['#value']) : $element['#value'][0];
+  }
+
+  return $output;
+
 }
 
 /**
@@ -151,7 +161,7 @@ function _webform_render_product_grid($component) {
     '#required' => $component['mandatory'],
     '#weight' => $component['weight'],
     '#description' => $component['extra']['description'] . $stock_description,
-    '#theme' => 'uc_webform_product_grid',
+    '#theme' => 'uc_webform_render_product_grid',
     '#theme_wrappers' => array('webform_element_wrapper'),
     '#pre_render' => array('webform_element_title_display'),
     '#post_render' => array('webform_element_wrapper'),
@@ -183,75 +193,28 @@ function _webform_render_product_grid($component) {
 
 /**
  * Implementation of _webform_display_component().
- *
-function _webform_display_grid($component, $value, $format = 'html') {
-  $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
-  $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
+ */
+function _webform_display_product_grid($component, $value, $format = 'html') {
+
+  $products = array();
+  foreach ($value as $key => $val) {
+    $nid_sku = explode('_', $key, 2);
+    $aid_oid = explode('_', $val, 2);
+    $node = node_load($nid_sku[0]);
+    $products[] = $node->title . ', SKU: ' . $node->model . ', Attribute: ' . $node->attributes[$aid_oid[0]]->name . ', Option: ' . $node->attributes[$aid_oid[0]]->options[$aid_oid[1]]->name;
+  }
 
   $element = array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
-    '#format' => $format,
-    '#questions' => $questions,
-    '#options' => $options,
-    '#theme' => 'webform_display_grid',
-    '#theme_wrappers' => $format == 'html' ? array('webform_element', 'webform_element_wrapper') : array('webform_element_text'),
-    '#post_render' => array('webform_element_wrapper'),
-    '#sorted' => TRUE,
+    '#theme' => 'uc_webform_display_product_grid',
     '#webform_component' => $component,
+    '#format' => $format,
+    '#value' => $products,
   );
 
-  foreach ($questions as $key => $question) {
-    if ($question !== '') {
-      $element[$question] = array(
-        '#title' => $question,
-        '#value' => isset($value[$key]) ? $value[$key] : NULL,
-      );
-    }
-  }
-
+dpm($element, "Element");
   return $element;
-}
-
-/**
- * Format the text output for this component.
- *
-function theme_webform_display_grid($element) {
-  $component = $element['#webform_component'];
-  $format = $element['#format'];
-
-  if ($format == 'html') {
-    $rows = array();
-    $header = array(array('data' => '', 'class' => 'webform-grid-question'));
-    foreach ($element['#options'] as $option) {
-      $header[] = array('data' => _webform_filter_xss($option), 'class' => 'checkbox webform-grid-option');
-    }
-    foreach (element_children($element) as $key) {
-      $row = array();
-      $row[] = array('data' => _webform_filter_xss($element[$key]['#title']), 'class' => 'webform-grid-question');
-      foreach ($element['#options'] as $option_value => $option_label) {
-        if (strcmp($option_value, $element[$key]['#value']) == 0) {
-          $row[] = array('data' => '<strong>X</strong>', 'class' => 'checkbox webform-grid-option');
-        }
-        else {
-          $row[] = array('data' => '&nbsp', 'class' => 'checkbox webform-grid-option');
-        }
-      }
-      $rows[] = $row;
-    }
-
-    $option_count = count($header) - 1;
-    $output = theme('table', $header, $rows, array('class' => 'webform-grid webform-grid-' . $option_count));
-  }
-  else {
-    $items = array();
-    foreach (element_children($element) as $key) {
-      $items[] = ' - ' . $element[$key]['#title'] . ': ' . (isset($element['#options'][$element[$key]['#value']]) ? $element['#options'][$element[$key]['#value']] : '');
-    }
-    $output = implode("\n", $items);
-  }
-
-  return $output;
 }
 
 /**
@@ -298,21 +261,23 @@ function _webform_analysis_grid($component, $sids = array()) {
 
 
   return array(array(array('data' => $output, 'colspan' => 2)));
-}
+}*/
 
 /**
  * Implementation of _webform_table_component().
- *
-function _webform_table_grid($component, $value) {
-  $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
-  $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
-
+ */
+function _webform_table_product_grid($component, $value) {
+  
   $output = '';
+
   // Set the value as a single string.
-  foreach ($questions as $key => $label) {
-    if (isset($value[$key]) && isset($options[$value[$key]])) {
-      $output .= _webform_filter_xss($label) . ': ' . _webform_filter_xss($options[$value[$key]]) . '<br />';
-    }
+  foreach ($value as $key => $val) {
+    $nid_sku = explode('_', $key, 2);
+    $aid_oid = explode('_', $val, 2);
+
+    $node = node_load($nid_sku[0]);
+    // Output the SKU and the option
+    $output .= $node->model . ' - ' . $node->attributes[$aid_oid[0]]->options[$aid_oid[1]]->name . '<br />';
   }
 
   return $output;
@@ -320,38 +285,78 @@ function _webform_table_grid($component, $value) {
 
 /**
  * Implementation of _webform_csv_headers_component().
- *
-function _webform_csv_headers_grid($component, $export_options) {
-  $header = array();
-  $header[0] = array('');
-  $header[1] = array($component['name']);
-  $items = _webform_select_options_from_text($component['extra']['questions'], TRUE);
-  $count = 0;
-  foreach ($items as $key => $item) {
-    // Empty column per sub-field in main header.
-    if ($count != 0) {
-      $header[0][] = '';
-      $header[1][] = '';
+ */
+function _webform_csv_headers_product_grid($component, $export_options) {
+  $headers = array(
+    0 => array(),
+    1 => array(),
+    2 => array(),
+  );
+
+  if ($export_options['select_format'] == 'separate') {
+    $headers[0][] = '';
+    $headers[1][] = $component['name'];
+
+    $count = 0;
+    foreach ($component['extra']['products'] as $val) {
+      $product_info = explode('_', $val, 2);
+      $node = node_load($product_info[0]);
+        // Add blank cells
+        if ($count != 0) {
+          // Empty column per sub-field in main header.
+          $headers[0][] = '';
+          $headers[1][] = '';
+        }
+
+        // List the product options as header cells
+        $headers[2][] = $node->title;
+        $count++;
     }
-    // The value for this option.
-    $header[2][] = $item;
-    $count++;
+  }
+  else {
+    $headers[0][] = '';
+    $headers[1][] = '';
+    $headers[2][] = $component['name'];
   }
 
-  return $header;
+  return $headers;
 }
 
 /**
  * Implementation of _webform_csv_data_component().
- *
-function _webform_csv_data_grid($component, $export_options, $value) {
-  $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
-  $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
-  $return = array();
-  foreach ($questions as $key => $question) {
-    if (isset($value[$key]) && isset($options[$value[$key]])) {
-      $return[] = $export_options['select_keys'] ? $value[$key] : $options[$value[$key]];
+ */
+function _webform_csv_data_product_grid($component, $export_options, $value) {
+
+  $data = array();
+
+  // Separate format
+  if ($export_options['select_format'] == 'separate') {
+    foreach ($component['extra']['products'] as $product) {
+      if (isset($value[$product])) {
+        $nid_sku = explode('_', $product, 2);
+        $aid_oid = explode('_', $value[$product], 2);
+
+        $node = node_load($nid_sku[0]);
+
+        $data[] = $node->attributes[$aid_oid[0]]->options[$aid_oid[1]]->name;
+      }
     }
   }
-  return $return;
-}*/
+  // Compact format
+  else {
+    $data_string;
+    foreach ($component['extra']['products'] as $product) {
+      if (isset($value[$product])) {
+        $nid_sku = explode('_', $product, 2);
+        $aid_oid = explode('_', $value[$product], 2);
+
+        $node = node_load($nid_sku[0]);
+
+        $data_string .= $node->attributes[$aid_oid[0]]->options[$aid_oid[1]]->name . ',';
+      }
+    }
+    $data[] = rtrim($data_string, ',');
+  }
+
+  return $data;
+}
