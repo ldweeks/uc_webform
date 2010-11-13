@@ -179,8 +179,12 @@ function _webform_display_product_list($component, $value, $format = 'html') {
 
   if (isset($value)) {
     foreach ($value as $product) {
-      if ($product != 0) {
-        $node = node_load($product);
+      if ($product == 0 || $product == 'checkboxes_product_list' || $product == 'radio_product_list') {
+        continue;
+      }
+      else {
+        $product_info = explode('_', $product, 2);
+        $node = node_load($product_info[0]);
         $product_title = $node->title . ', ' . t('SKU:') . $node->model;
         array_push($products, $product_title);
       }
