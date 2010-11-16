@@ -71,6 +71,13 @@ function _uc_webform_autocomplete_products($string = '') {
 /**
  * Provides a simple analysis of submissions that contain products.
  *
+ * This function depends on _uc_webform_product_orders, _uc_webform_product_list_orders
+ * and _uc_webform_product_grid_orders, and is called when viewing the
+ * "orders" tab from within the results section of a particular webform.
+ *
+ * TODO: I should probably move the three functions listed above to their
+ * respective component files.
+ *
  */
 function uc_webform_product_analysis($node, $sids = array(), $analysis_component = NULL) {
   if (!is_array($sids)) {
@@ -105,6 +112,12 @@ function uc_webform_product_analysis($node, $sids = array(), $analysis_component
     }
     elseif ($component['type'] == 'product_list') {
       if ($row_data = _uc_webform_product_list_orders($component, $order_status_cid)) {
+        $data[$cid] = $row_data;
+      }
+      $cids[] = $component['cid'];
+    }
+    elseif ($component['type'] == 'product_grid') {
+      if ($row_data = _uc_webform_product_grid_orders($component, $order_status_cid)) {
         $data[$cid] = $row_data;
       }
       $cids[] = $component['cid'];
@@ -196,6 +209,81 @@ function _uc_webform_product_list_orders($component, $order_status_cid) {
   }
 
   return $rows;
+}
+
+/**
+ * Generate statistics for product_grid components, limited to checked out webforms.
+ * This information is displayed under the "orders" tab of the webform results.
+ *
+ */
+function _uc_webform_product_grid_orders($component, $order_status_cid) {
+
+  // Build the rows of the table, including the first column
+  $rows = array('');
+  $header = array('');
+  $product_nids = array();
+  foreach ($component['extra']['products'] as $product) {
+    $nid_sku = explode('_', $product, 2);
+    $product_nids[] = $nid_sku[0];
+    $product_node = node_load($nid_sku[0]);
+
+    // I use the nid_sku combination here as a key
+    $rows[$product] = array($product_node->title);
+  }
+
+  // Select the available option IDs and option names for each product in the table.
+  $result = db_query("SELECT DISTINCT po.oid, ao.name FROM {uc_product_options} AS po INNER JOIN {uc_attribute_options} AS ao ON po.oid = ao.oid WHERE po.nid IN ('". implode("','", $product_nids) ."')");
+
+  // Build the header row
+  $options = array();
+  while ($option = db_fetch_array($result)) {
+    // This is tricky, but I'm using the oid as an array key to help when I
+    // query the webform_submitted_data table (since it stores the oid instead of the
+    // option name).
+    $header[$option['oid']] = $option['name'];
+  }
+
+  // Get a list of all submission IDs for submissions where checkout has been completed.
+  $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data <> 'Did not complete checkout'", $component['nid'], $order_status_cid);
+
+  $sids = array();
+  while ($submission = db_fetch_array($checked_out_sids)) {
+    $sids[] = $submission['sid'];
+  }
+
+  // Use the array of checked out submission ID's to grab only the checked out product data.
+  $co_results = db_query("SELECT no, data, count(data) AS datacount FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ('". implode("','", $sids) ."') GROUP BY no, data", $component['cid'], $component['nid']);
+
+  $selections = array();
+  while ($data = db_fetch_array($co_results)) {
+    $aid_oid = explode('_', $data['data'], 2);
+    // The information is stored in the DB as attribute-ID_option-ID. This line
+    // removes the attribute ID and leaves the $selections key as the option ID.
+    $selections[$data['no']][$aid_oid[1]] = $data['datacount'];
+  }
+
+  // Check to see if any completed orders include this component. Return NULL if there aren't any.
+  if (!empty($selections)) {
+    // Build up the 2D array that will be used to create the table.
+    foreach ($rows as $rkey => $rval) {
+      if ($rkey != 0) {
+        foreach ($header as $hkey => $hval) {
+          if ($hkey != 0) {
+            // $rkey = nid_sku
+            // $hkey = option ID
+            $rows[$rkey][] = isset($selections[$rkey][$hkey]) ? $selections[$rkey][$hkey] : 0;
+          }
+        }
+      }
+    }
+
+    $output = theme('table', $header, $rows, array('class' => 'webform-product-grid'));
+
+    return array(array(array('data' => $output, 'colspan' => 2)));
+  }
+  else {
+    return NULL;
+  }
 }
 
 /**

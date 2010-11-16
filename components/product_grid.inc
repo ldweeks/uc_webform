@@ -225,7 +225,6 @@ function _webform_analysis_product_grid($component, $sids = array()) {
   $rows = array('');
   $header = array('');
 
-  $columns = array(array('data' => '', 'class' => 'uc_webform-product-grid-product'));
   $product_nids = array();
 
   $option_ids = array();
