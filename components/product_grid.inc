@@ -218,49 +218,65 @@ function _webform_display_product_grid($component, $value, $format = 'html') {
 
 /**
  * Implementation of _webform_analysis_component().
- *
-function _webform_analysis_grid($component, $sids = array()) {
-  // Generate the list of options and questions.
-  $options = _webform_select_options_from_text($component['extra']['options'], TRUE);
-  $questions = _webform_select_options_from_text($component['extra']['questions'], TRUE);
-
-  // Generate a lookup table of results.
-  $placeholders = count($sids) ? array_fill(0, count($sids), "'%s'") : array();
-  $sidfilter = count($sids) ? " AND sid in (" . implode(",", $placeholders) . ")" : "";
-  $query = 'SELECT no, data, count(data) as datacount ' .
-    ' FROM {webform_submitted_data} ' .
-    ' WHERE nid = %d ' .
-    ' AND cid = %d ' .
-    " AND data != '' " . $sidfilter .
-    ' GROUP BY no, data';
-  $result = db_query($query, array_merge(array($component['nid'], $component['cid']), $sids));
-  $counts = array();
-  while ($data = db_fetch_object($result)) {
-    $counts[$data->no][$data->data] = $data->datacount;
-  }
+ */
+function _webform_analysis_product_grid($component, $sids = array()) {
 
   // Create an entire table to be put into the returned row.
-  $rows = array();
+  $rows = array('');
   $header = array('');
 
-  // Add options as a header row.
-  foreach ($options as $option) {
-    $header[] = _webform_filter_xss($option);
+  $columns = array(array('data' => '', 'class' => 'uc_webform-product-grid-product'));
+  $product_nids = array();
+
+  $option_ids = array();
+
+  foreach ($component['extra']['products'] as $product) {
+    $nid_sku = explode('_', $product, 2);
+    $product_nids[] = $nid_sku[0];
+    $product_node = node_load($nid_sku[0]);
+
+    // I nid_sku combination here as a key
+    $rows[$product] = array($product_node->title);
   }
 
-  // Add questions as each row.
-  foreach ($questions as $qkey => $question) {
-    $row = array(_webform_filter_xss($question));
-    foreach ($options as $okey => $option) {
-      $row[] = !empty($counts[$qkey][$okey]) ? $counts[$qkey][$okey] : 0;
+  // Select the available option IDs and option names for each product in the table.
+  $result = db_query("SELECT DISTINCT po.oid, ao.name FROM {uc_product_options} AS po INNER JOIN {uc_attribute_options} AS ao ON po.oid = ao.oid WHERE po.nid IN ('". implode("','", $product_nids) ."')");
+
+  // Build the header row
+  $options = array();
+  while ($option = db_fetch_array($result)) {
+    // This is tricky, but I'm using the oid as an array key to help when I
+    // query the webforom_submitted_data table (since it stores the oid instead of the 
+    // option name).
+    $header[$option['oid']] = $option['name'];
+  }
+
+  $result = db_query("SELECT no, data, count(data) as datacount FROM {webform_submitted_data} WHERE nid = %d AND cid = %d GROUP BY no, data", $component['nid'], $component['cid']);
+
+  $selections = array();
+  while ($data = db_fetch_array($result)) {
+    $aid_oid = explode('_', $data['data'], 2);
+    // The information is stored in the DB as attribute-ID_option-ID. This line
+    // removes the attribute ID and leaves the $selections key as the option ID.
+    $selections[$data['no']][$aid_oid[1]] = $data['datacount'];
+  }
+
+  foreach ($rows as $rkey => $rval) {
+    if ($rkey != 0) {
+      foreach ($header as $hkey => $hval) {
+        if ($hkey != 0) {
+          // $rkey = product-nid_sku
+          // $hkey = option ID
+          $rows[$rkey][] = isset($selections[$rkey][$hkey]) ? $selections[$rkey][$hkey] : 0;
+        }
+      }
     }
-    $rows[] = $row;
   }
-  $output = theme('table', $header, $rows, array('class' => 'webform-grid'));
 
+  $output = theme('table', $header, $rows, array('class' => 'webform-product-grid'));
 
   return array(array(array('data' => $output, 'colspan' => 2)));
-}*/
+}
 
 /**
  * Implementation of _webform_table_component().
