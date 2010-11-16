@@ -163,7 +163,12 @@ function _uc_webform_product_orders($component, $order_status_cid) {
 
   $rows[0] = array(t($product_info[1]), $total);
 
-  return $rows;
+  if ($total > 0) {
+    return $rows;
+  }
+  else {
+    return NULL;
+  }
 }
 
 /**
