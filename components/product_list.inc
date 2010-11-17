@@ -197,7 +197,7 @@ function _webform_display_product_list($component, $value, $format = 'html') {
     }
   }
 
-  return array(
+  $element = array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
     '#theme' => 'uc_webform_display_product_list',
@@ -207,6 +207,8 @@ function _webform_display_product_list($component, $value, $format = 'html') {
     '#format' => $format,
     '#value' => $products,
   );
+
+  return $element;
 }
 
 /**

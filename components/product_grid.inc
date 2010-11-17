@@ -212,8 +212,10 @@ function _webform_display_product_grid($component, $value, $format = 'html') {
     '#title' => $component['name'],
     '#weight' => $component['weight'],
     '#theme' => 'uc_webform_display_product_grid',
-    '#webform_component' => $component,
+    '#component' => $component,
     '#format' => $format,
+    '#post_render' => array('webform_element_wrapper'),
+    '#theme_wrappers' => $format == 'html' ? array('webform_element') : array('webform_element_text'),
     '#value' => $products,
   );
 

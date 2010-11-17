@@ -192,7 +192,7 @@ function _webform_display_product($component, $value, $format = 'html') {
   $node = node_load($product_info[0]);
   $result_info = array(t('Title:') . ' ' . $node->title . '<br/>' . t('SKU:') . ' ' . $product_info[1] . '<br/>' . t('Quantity:') . ' ' . $value[2]);
 
-  return array(
+  $element = array(
     '#title' => $component['name'],
     '#weight' => $component['weight'],
     '#theme' => 'uc_webform_display_product',
@@ -202,6 +202,8 @@ function _webform_display_product($component, $value, $format = 'html') {
     '#format' => $format,
     '#value' => $result_info,
   );
+
+  return $element;
 }
 
 /**
