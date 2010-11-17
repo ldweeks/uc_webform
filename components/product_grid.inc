@@ -53,20 +53,24 @@ function theme_uc_webform_render_product_grid($element) {
     $product_key = $row[0]['product'];
     $radios = expand_radios($element[$product_key]);
     foreach ($columns as $col) {
-      if (isset($radios[$col['oid']])) {
-        unset($radios[$col['oid']]['#title']);
-        $row[] = array('data' => drupal_render($radios[$col['oid']]), 'class' => 'checkbox webform-grid-option');
-      }
-      elseif (isset($col['oid'])) {
-        $row[] = array('data' => 'n/a', 'class' => 'checkbox webform-grid-option');
+      if (isset($col['oid'])) {
+        if (isset($radios[$col['oid']])) {
+          unset($radios[$col['oid']]['#title']);
+          $row[] = array('data' => drupal_render($radios[$col['oid']]), 'class' => 'checkbox webform-grid-option');
+        }
+        else {
+          $row[] = array('data' => 'n/a', 'class' => 'checkbox webform-grid-option');
+        }
       }
     }
     $final_rows[] = $row;
   }
 
-  $option_count = count($header) - 1;
+  $option_count = count($columns) - 1;
 
-  return theme('form_element', $element, theme('table', $columns, $final_rows, array('class' => 'uc_webform-product-grid uc_webform-product-grid-' . $option_count)));
+  $output = theme('table', $columns, $final_rows, array('class' => 'uc_webform-product-grid uc_webform-product-grid-' . $option_count));
+
+  return theme('form_element', $element, $output);
 }
 
 function theme_uc_webform_display_product_grid($element) {
@@ -222,8 +226,8 @@ function _webform_display_product_grid($component, $value, $format = 'html') {
 function _webform_analysis_product_grid($component, $sids = array()) {
 
   // Create an entire table to be put into the returned row.
-  $rows = array('');
-  $header = array('');
+  $rows = array(array());
+  $header = array(array());
 
   $product_nids = array();
 

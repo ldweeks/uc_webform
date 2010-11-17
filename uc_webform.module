@@ -224,8 +224,8 @@ function _uc_webform_product_list_orders($component, $order_status_cid) {
 function _uc_webform_product_grid_orders($component, $order_status_cid) {
 
   // Build the rows of the table, including the first column
-  $rows = array('');
-  $header = array('');
+  $rows = array(array());
+  $header = array(array());
   $product_nids = array();
   foreach ($component['extra']['products'] as $product) {
     $nid_sku = explode('_', $product, 2);

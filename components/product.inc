@@ -123,7 +123,6 @@ function _webform_render_product($component, $value = NULL) {
       '#type' => 'textfield',
       '#title' => $component['name'],
       '#weight' => $component['weight'],
-      '#size' => $component['extra']['width'],
       '#description' => $component['extra']['description'],
       '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
       '#field_prefix' => t('Quantity:') . ' ',
@@ -137,6 +136,9 @@ function _webform_render_product($component, $value = NULL) {
       // This is so that products whose quantity is disabled are added to the cart correctly.
       if ($component['extra']['disabled']) {
         $element['#value'] = isset($value) ? check_plain($value[0]) : check_plain($component['value']);
+      }
+      if (isset($component['extra']['width'])) {
+        $element['#size'] = $component['extra']['width'];
       }
   }
   else {
