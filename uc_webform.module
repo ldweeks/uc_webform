@@ -725,7 +725,7 @@ function uc_webform_webform_submission_insert($node, $submission) {
 
           $component_data = unserialize(db_result(db_query('SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d', $component['cid'], $node->nid)));
 
-          // $product_info will contain an array with 
+          // $product_info will contain an array with
           // the product node ID and the selected model (sku).
           $product_info = explode('_', $component_data['product'], 2);
 

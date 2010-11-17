@@ -2,7 +2,8 @@
 // $Id$
 
 /**
- * Product Component
+ * @file
+ * Webform module product component.
  */
 
 /**

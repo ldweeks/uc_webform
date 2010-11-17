@@ -3,7 +3,7 @@
 
 /**
  * @file
- * Webform module grid component.
+ * Webform module product grid component.
  */
 
 // Product Grid depends on functions provided by select.
@@ -31,7 +31,7 @@ function theme_uc_webform_render_product_grid($element) {
   $product_keys = element_children($element);
 
 
-  // This loop creates the row at the top (which is a list of product options) and 
+  // This loop creates the row at the top (which is a list of product options) and
   // the first column on the left (which is the product title column).
   foreach (element_children($element) as $key) {
     $product_element = $element[$key];
@@ -251,7 +251,7 @@ function _webform_analysis_product_grid($component, $sids = array()) {
   $options = array();
   while ($option = db_fetch_array($result)) {
     // This is tricky, but I'm using the oid as an array key to help when I
-    // query the webforom_submitted_data table (since it stores the oid instead of the 
+    // query the webforom_submitted_data table (since it stores the oid instead of the
     // option name).
     $header[$option['oid']] = $option['name'];
   }
@@ -287,7 +287,7 @@ function _webform_analysis_product_grid($component, $sids = array()) {
  * Implementation of _webform_table_component().
  */
 function _webform_table_product_grid($component, $value) {
-  
+
   $output = '';
 
   // Set the value as a single string.

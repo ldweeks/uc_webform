@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ * @file
+ * Webform module product_list component.
+ */
+
+/**
  * Implementation of _webform_defaults_component().
  */
 function _webform_defaults_product_list() {
