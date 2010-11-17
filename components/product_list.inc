@@ -136,7 +136,6 @@ function _webform_render_product_list($component, $value = NULL) {
       '#post_render' => array('webform_element_wrapper'),
       '#required' => $component['mandatory'],
       '#options' => theme('uc_webform_render_product_list', $products),
-      //'#element_validate' => array('_webform_render_product_list_validate'),
     );
   }
   elseif ($component['extra']['multiple'] == 1) {
@@ -152,7 +151,6 @@ function _webform_render_product_list($component, $value = NULL) {
       '#post_render' => array('webform_element_wrapper'),
       '#required' => $component['mandatory'],
       '#options' => theme('uc_webform_render_product_list', $products),
-      //'#element_validate' => array('_webform_render_product_list_validate'),
     );
   }
 
@@ -161,18 +159,6 @@ function _webform_render_product_list($component, $value = NULL) {
   }
 
   return $form_item;
-}
-
-/**
- * Validate product entry
- */
-function _webform_render_product_list_validate($element, &$form_state) {
-
-  // Check to see that we have enough in stock.
-  $stock = uc_stock_level($element['#sku']);
-  if (($stock !== FALSE) && ($stock < $element['#value'])) {
-    form_error($element, t("Only !stock of SKU: !sku remain. Please enter a different amount.", array('!stock' => $stock, '!sku' => $element['#sku'])));
-  }
 }
 
 /**
