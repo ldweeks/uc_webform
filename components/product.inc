@@ -83,7 +83,6 @@ function _webform_edit_product($component) {
   $form['display']['width'] = array(
     '#type' => 'textfield',
     '#title' => t('Width'),
-    '#default_value' => $component['extra']['width'],
     '#description' => t('Width of the textfield.') . ' ' . t('Leaving blank will use the default size.'),
     '#size' => 5,
     '#maxlength' => 10,
@@ -99,6 +98,10 @@ function _webform_edit_product($component) {
     '#default_value' => $component['extra']['disabled'],
     '#parents' => array('extra', 'disabled'),
   );
+
+  if (isset($component['extra']['width'])) {
+    $form['display']['width']['#default_value'] = $component['extra']['width'];
+  }
 
   return $form;
 }
@@ -122,12 +125,14 @@ function _webform_render_product($component, $value = NULL) {
     $element = array(
       '#type' => 'textfield',
       '#title' => $component['name'],
+      '#title_display' => $component['extra']['title_display'] ? $component['extra']['title_display'] : 'before',
       '#weight' => $component['weight'],
       '#description' => $component['extra']['description'],
       '#default_value' => isset($value) ? check_plain($value[0]) : check_plain($component['value']),
       '#field_prefix' => t('Quantity:') . ' ',
       '#field_suffix' => theme('uc_webform_render_product', $product),
       '#required' => $component['mandatory'],
+      '#pre_render' => array('webform_element_title_display'),
       '#disabled' => $component['extra']['disabled'],
       '#sku' => $sku,
       '#element_validate' => array('_webform_render_product_validate'),

@@ -161,7 +161,7 @@ function _webform_render_product_grid($component) {
 
   $element = array(
     '#title' => $component['name'],
-    '#title_display' => $component['extra']['title_display'],
+    '#title_display' => $component['extra']['title_display'] ? $component['extra']['title_display'] : 'before',
     '#required' => $component['mandatory'],
     '#weight' => $component['weight'],
     '#description' => $component['extra']['description'] . $stock_description,
