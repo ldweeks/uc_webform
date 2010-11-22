@@ -32,9 +32,7 @@ Developer Notes
 
 Todo/Bugs/Feature Requests
 --------------------------
-- Product Grids do not yet supply information to the 'orders' tab or to the 'analysis' tab.
-- There are a couple known bugs with product grids: the required checkbox doesn't quite work, and the component title doesn't appear correctly.
-- Validation for products seems to be commented out for some reason.
+- None.
 
 Support
 -------
