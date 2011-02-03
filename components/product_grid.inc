@@ -30,9 +30,8 @@ function theme_uc_webform_render_product_grid($element) {
   $option_ids = array();
   $product_keys = element_children($element);
 
-
-  // This loop creates the row at the top (which is a list of product options) and
-  // the first column on the left (which is the product title column).
+  // This loop creates the row at the top (which is a list of product options)
+  // and the first column on the left (which is the product title column).
   foreach (element_children($element) as $key) {
     $product_element = $element[$key];
 
@@ -74,13 +73,10 @@ function theme_uc_webform_render_product_grid($element) {
 }
 
 function theme_uc_webform_display_product_grid($element) {
-
   if (isset($element['#value'])) {
     $output = (count($element['#value']) > 1) ? theme('item_list', $element['#value']) : $element['#value'][0];
   }
-
   return $output;
-
 }
 
 /**
@@ -172,7 +168,8 @@ function _webform_render_product_grid($component) {
     '#webform_component' => $component,
   );
 
-  // Iterate through each product that will be offered. Products will appear on the left of the grid.
+  // Iterate through each product that will be offered. Products will appear on
+  // the left of the grid.
   foreach ($product_nodes as $key => $product_node) {
     $element[$key] = array(
       '#title' => $product_node->title,
@@ -181,7 +178,8 @@ function _webform_render_product_grid($component) {
       '#process' => array('expand_radios', 'webform_expand_select_ids'),
     );
 
-    // Iterate through each product option for each product. Product options will appear on the top of the grid.
+    // Iterate through each product option for each product. Product options
+    // will appear on the top of the grid.
     $product_options = array();
     foreach ($product_node->attributes as $aid => $attribute) {
       foreach ($attribute->options as $option) {
@@ -240,18 +238,18 @@ function _webform_analysis_product_grid($component, $sids = array()) {
     $product_nids[] = $nid_sku[0];
     $product_node = node_load($nid_sku[0]);
 
-    // I nid_sku combination here as a key
+    // A nid_sku combination is used as the key here.
     $rows[$product] = array($product_node->title);
   }
 
-  // Select the available option IDs and option names for each product in the table.
+  // Select the available option IDs and names for each product in the table.
   $result = db_query("SELECT DISTINCT po.oid, ao.name FROM {uc_product_options} AS po INNER JOIN {uc_attribute_options} AS ao ON po.oid = ao.oid WHERE po.nid IN ('". implode("','", $product_nids) ."')");
 
-  // Build the header row
+  // Build the header row.
   $options = array();
   while ($option = db_fetch_array($result)) {
-    // This is tricky, but I'm using the oid as an array key to help when I
-    // query the webforom_submitted_data table (since it stores the oid instead of the
+    // Use the oid as an array key to help when quering the
+    // webform_submitted_data table (since it stores the oid instead of the
     // option name).
     $header[$option['oid']] = $option['name'];
   }
@@ -296,7 +294,7 @@ function _webform_table_product_grid($component, $value) {
     $aid_oid = explode('_', $val, 2);
 
     $node = node_load($nid_sku[0]);
-    // Output the SKU and the option
+    // Output the SKU and the option.
     $output .= $node->model . ' - ' . $node->attributes[$aid_oid[0]]->options[$aid_oid[1]]->name . '<br />';
   }
 
@@ -321,7 +319,7 @@ function _webform_csv_headers_product_grid($component, $export_options) {
     foreach ($component['extra']['products'] as $val) {
       $product_info = explode('_', $val, 2);
       $node = node_load($product_info[0]);
-        // Add blank cells
+        // Add blank cells.
         if ($count != 0) {
           // Empty column per sub-field in main header.
           $headers[0][] = '';
@@ -349,7 +347,7 @@ function _webform_csv_data_product_grid($component, $export_options, $value) {
 
   $data = array();
 
-  // Separate format
+  // Separate format.
   if ($export_options['select_format'] == 'separate') {
     foreach ($component['extra']['products'] as $product) {
       if (isset($value[$product])) {
@@ -362,7 +360,7 @@ function _webform_csv_data_product_grid($component, $export_options, $value) {
       }
     }
   }
-  // Compact format
+  // Compact format.
   else {
     $data_string;
     foreach ($component['extra']['products'] as $product) {

@@ -2,7 +2,8 @@
 // $Id$
 
 /**
- * Drupal Core Hook Functions
+ * @file
+ * Provides components to the Webform module utilizing the Ubercart package.
  */
 
 /**
@@ -15,12 +16,11 @@ function uc_webform_menu() {
     'title' => 'Delete',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('uc_webform_submission_delete_products_form'),
-    //'access callback' => This defaults to user_access
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
   $items['uc_webform/autocomplete'] = array(
-    'title' => '',
+    'title' => 'Product autocomplete',
     'page callback' => '_uc_webform_autocomplete_products',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
@@ -50,34 +50,29 @@ function uc_webform_theme() {
 }
 
 /**
- * Provides an auto-complete list of products that do not contain attributes or options.
- *
+ * Provides an auto-complete list of products that do not contain attributes.
  */
 function _uc_webform_autocomplete_products($string = '') {
   $matches = array();
   $product_types = uc_product_types();
 
-  // I need to limit the users selection to only those products that do *not* contain attributes.
-  $result = db_query_range("SELECT n.nid, n.title, p.model FROM {node} AS n INNER JOIN {uc_products} AS p ON n.nid = p.nid WHERE n.type IN ('". implode("','", $product_types) ."') AND n.title LIKE '%%%s%' AND n.nid NOT IN (SELECT nid FROM {uc_product_attributes}) ", $string, 0, 10);
+  // Limit selection to only those products that do *not* contain attributes.
+  $placeholders = db_placeholders($product_types, 'varchar');
+  $arguments = array_merge($product_types, array($string, 0, 10));
+  $result = db_query_range("SELECT n.nid, n.title, p.model FROM {node} AS n INNER JOIN {uc_products} AS p ON n.nid = p.nid WHERE n.type IN ($placeholders) AND n.title LIKE '%%%s%' AND n.nid NOT IN (SELECT nid FROM {uc_product_attributes}) ", $arguments);
 
   while ($product = db_fetch_object($result)) {
     $matches[$product->nid . '_' . $product->model] = check_plain($product->title);
   }
 
-  print drupal_to_js($matches);
-  exit();
+  drupal_json($matches);
 }
 
 /**
  * Provides a simple analysis of submissions that contain products.
  *
- * This function depends on _uc_webform_product_orders, _uc_webform_product_list_orders
- * and _uc_webform_product_grid_orders, and is called when viewing the
- * "orders" tab from within the results section of a particular webform.
- *
- * TODO: I should probably move the three functions listed above to their
- * respective component files.
- *
+ * Called when viewing the "Orders" tab from within the results section of a
+ * particular webform.
  */
 function uc_webform_product_analysis($node, $sids = array(), $analysis_component = NULL) {
   if (!is_array($sids)) {
@@ -125,7 +120,7 @@ function uc_webform_product_analysis($node, $sids = array(), $analysis_component
   }
 
   if (empty($cids)) {
-    return 'There are no products associated with this webform.';
+    return t('There are no products associated with this webform.');
   }
   else {
     return theme('uc_webform_product_analysis', $node, $data, $sids, $analysis_component, $order_status_cid);
@@ -134,12 +129,13 @@ function uc_webform_product_analysis($node, $sids = array(), $analysis_component
 
 /**
  * Generate statistics for product components, limited to checked out webforms.
- * This information is displayed under the "orders" tab of the webform results.
  *
+ * This information is displayed under the "orders" tab of the webform results.
  */
 function _uc_webform_product_orders($component, $order_status_cid) {
 
-  // First, I need to get this list of all submission IDs for webform submissions where checkout has been completed.
+  // First, get the list of all submission IDs for webform submissions where
+  // checkout has been completed.
   $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data <> 'Did not complete checkout'", $component['nid'], $order_status_cid);
 
   $sids = array();
@@ -147,8 +143,11 @@ function _uc_webform_product_orders($component, $order_status_cid) {
     $sids[] = $submission['sid'];
   }
 
-  // Use the array of checked out submission ID's to grab only the checked out product data.
-  $co_results = db_query("SELECT * FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ('". implode("','", $sids) ."')", $component['cid'], $component['nid']);
+  // Use the array of checked out submission ID's to grab only the checked out
+  // product data.
+  $placeholders = db_placeholders($sids);
+  $arguments = array_merge($sids, array($component['cid'], $component['nid']));
+  $co_results = db_query("SELECT * FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ($placeholders)", $arguments);
 
   $product_results = array();
   $total = 0;
@@ -172,13 +171,14 @@ function _uc_webform_product_orders($component, $order_status_cid) {
 }
 
 /**
- * Generate statistics for product_list components, limited to checked out webforms.
- * This information is displayed under the "orders" tab of the webform results.
+ * Statistics for product_list components, limited to checked out webforms.
  *
+ * This information is displayed under the "Orders" tab of the webform results.
  */
 function _uc_webform_product_list_orders($component, $order_status_cid) {
 
-  // First, I need to get this list of all submission IDs for webform submissions where checkout has been completed.
+  // First, get the list of all submission IDs for webform submissions where
+  // checkout has been completed.
   $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data <> 'Did not complete checkout'", $component['nid'], $order_status_cid);
 
   $sids = array();
@@ -186,8 +186,11 @@ function _uc_webform_product_list_orders($component, $order_status_cid) {
     $sids[] = $submission['sid'];
   }
 
-  // Use the array of checked out submission ID's to grab only the checked out product data.
-  $co_results = db_query("SELECT * FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ('". implode("','", $sids) ."')", $component['cid'], $component['nid']);
+  // Use the array of checked out submission ID's to grab only the checked out
+  // product data.
+  $placeholders = db_placeholders($sids);
+  $arguments = array_merge($sids, array($component['cid'], $component['nid']));
+  $co_results = db_query("SELECT * FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ($placeholders)", $arguments);
 
   $product_results = array();
   while ($co_result = db_fetch_array($co_results)) {
@@ -236,19 +239,20 @@ function _uc_webform_product_grid_orders($component, $order_status_cid) {
     $rows[$product] = array($product_node->title);
   }
 
-  // Select the available option IDs and option names for each product in the table.
-  $result = db_query("SELECT DISTINCT po.oid, ao.name FROM {uc_product_options} AS po INNER JOIN {uc_attribute_options} AS ao ON po.oid = ao.oid WHERE po.nid IN ('". implode("','", $product_nids) ."')");
+  // Select the available option IDs and names for each product in the table.
+  $placeholders = db_placeholders($product_nids);
+  $result = db_query("SELECT DISTINCT po.oid, ao.name FROM {uc_product_options} AS po INNER JOIN {uc_attribute_options} AS ao ON po.oid = ao.oid WHERE po.nid IN ($placeholders)", $product_nids);
 
-  // Build the header row
+  // Build the header row.
   $options = array();
   while ($option = db_fetch_array($result)) {
-    // This is tricky, but I'm using the oid as an array key to help when I
-    // query the webform_submitted_data table (since it stores the oid instead of the
+    // Use the oid as an array key to help when quering the
+    // webform_submitted_data table (since it stores the oid instead of the
     // option name).
     $header[$option['oid']] = $option['name'];
   }
 
-  // Get a list of all submission IDs for submissions where checkout has been completed.
+  // Get a list of all submission IDs for submissions with completed checkouts.
   $checked_out_sids = db_query("SELECT sid FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND data <> 'Did not complete checkout'", $component['nid'], $order_status_cid);
 
   $sids = array();
@@ -256,8 +260,11 @@ function _uc_webform_product_grid_orders($component, $order_status_cid) {
     $sids[] = $submission['sid'];
   }
 
-  // Use the array of checked out submission ID's to grab only the checked out product data.
-  $co_results = db_query("SELECT no, data, count(data) AS datacount FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ('". implode("','", $sids) ."') GROUP BY no, data", $component['cid'], $component['nid']);
+  // Use the array of checked out submission ID's to grab only the checked out
+  // product data.
+  $placeholders = db_placeholders($sids);
+  $arguments = array_merge($sids, $component['cid'], $component['nid']);
+  $co_results = db_query("SELECT no, data, count(data) AS datacount FROM {webform_submitted_data} WHERE cid = %d AND nid = %d AND sid IN ($placeholders) GROUP BY no, data", $arguments);
 
   $selections = array();
   while ($data = db_fetch_array($co_results)) {
@@ -267,7 +274,8 @@ function _uc_webform_product_grid_orders($component, $order_status_cid) {
     $selections[$data['no']][$aid_oid[1]] = $data['datacount'];
   }
 
-  // Check to see if any completed orders include this component. Return NULL if there aren't any.
+  // Check to see if any completed orders include this component. Return NULL
+  // if there aren't any.
   if (!empty($selections)) {
     // Build up the 2D array that will be used to create the table.
     foreach ($rows as $rkey => $rval) {
@@ -331,8 +339,10 @@ function theme_uc_webform_product_analysis($node, $data, $sids = array(), $analy
 }
 
 /**
- * Confirm form to delete all of the products from the cart that are associated with
- * mandatory webform submission elements.
+ * Confirmation form before deleting products from a cart.
+ *
+ * When removing a single product from a cart alert the user that doing so will
+ * also remove all other products associated with the same form.
  */
 function uc_webform_submission_delete_products_form() {
 
@@ -345,7 +355,7 @@ function uc_webform_submission_delete_products_form() {
 
 function uc_webform_submission_delete_products_form_submit($form, &$form_state) {
 
-  // Remove all items from the current webform submission from the cart
+  // Remove all items from the current webform submission from the cart.
   $cart_items = uc_cart_get_contents();
 
   foreach ($cart_items as $cart_item) {
@@ -369,7 +379,8 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
           $data = unserialize($form['items'][$count]['data']['#value']);
 
           if (($data['webform_ctype'] == 'product_list') || ($data['webform_ctype'] == 'product')) {
-            // Check to see if the product was a mandatory field in the webform submission.
+            // Check to see if the product was a mandatory field in the webform
+            // submission.
             $component_info = db_fetch_array(db_query("SELECT mandatory, extra FROM {webform_component} WHERE nid = %d AND cid = %d", $data['webform_nid'], $data['webform_cid']));
 
             $component_info['extra'] = unserialize($component_info['extra']);
@@ -378,16 +389,21 @@ function uc_webform_form_alter(&$form, &$form_state, $form_id) {
             $form['items'][$count]['qty']['#disabled'] = TRUE;
             $form['items'][$count]['qty']['#value'] = db_result(db_query("SELECT data FROM {webform_submitted_data} WHERE nid = %d AND sid = %d AND cid = %d AND no = 2", $data['webform_nid'], $data['webform_sid'], $data['webform_cid']));;
 
-            // Force the user to remove *all* webform-related products from the cart if they want to remove *one* mandatory webform-related product from the cart.
+            // Force the user to remove *all* webform-related products from the
+            // cart if they want to remove *one* mandatory webform-related
+            // product from the cart.
             if ($component_info['mandatory'] == 1) {
               $form['items'][$count]['remove']['#type'] = 'markup';
               $form['items'][$count]['remove']['#value'] = l(t('Delete'), "cart/delete-form", array('query' => drupal_get_destination()));
             }
 
             if ($data['webform_ctype'] == 'product_list') {
-              // Users may not edit the quantity of a product_list webform product.
+              // Users may not edit the quantity of a product_list webform
+              // product.
               $form['items'][$count]['qty']['#disabled'] = TRUE;
-              $form['items'][$count]['qty']['#value'] = 1; // If you don't specicfy #value here, all products will be removed if any product is removed.
+              // If #value is not specified here, all products will be removed
+              // if any product is removed.
+              $form['items'][$count]['qty']['#value'] = 1;
             }
           }
         }
@@ -556,10 +572,6 @@ function uc_webform_webform_components_form($form) {
 }
 
 /**
- * Ubercart Hook Functions
- */
-
-/**
  * Implementation of hook_order().
  */
 function uc_webform_order($op, &$arg1, $arg2) {
@@ -602,8 +614,6 @@ function uc_webform_order($op, &$arg1, $arg2) {
 
 /**
  * Implementation of hook_cart_item().
- *
- * This usage currently depends on a patch to ubercart: http://drupal.org/node/744956
  */
 function uc_webform_cart_item($op, &$item) {
   switch ($op) {
@@ -623,13 +633,11 @@ function uc_webform_cart_item($op, &$item) {
 }
 
 /**
- * Webform Hook Functions
- */
-
-/**
- * Define components to Webform.
+ * Implementation of hook_webform_component_info().
  *
- * Form more information: http://drupal.org/node/886014
+ * Define components available to Webform.
+ *
+ * @see http://drupal.org/node/886014
  */
 
 function uc_webform_webform_component_info() {
@@ -671,7 +679,6 @@ function uc_webform_webform_component_info() {
  * Respond to a Webform submission being inserted.
  */
 function uc_webform_webform_submission_insert($node, $submission) {
-
   // If the latest webform submission has products in it, remove the
   // previous webform submission products and add the new ones. Otherwise,
   // allow the form to be submitted without incident.
@@ -684,12 +691,13 @@ function uc_webform_webform_submission_insert($node, $submission) {
 
   $remove_sid = FALSE;
   if ($remove) {
-    // Remove items from previous webform submissions from the cart
+    // Remove items from previous webform submissions from the cart.
     $cart_items = uc_cart_get_contents();
 
     foreach ($cart_items as $cart_item) {
       if (isset($cart_item->data['webform_sid']) && ($cart_item->data['webform_sid'] != $submission->sid)) {
-        // Capture the submission ID of the previous submission so that we can clean up the webform tables next.
+        // Capture the submission ID of the previous submission so that we can
+        // clean up the webform tables next.
         $remove_sid = (integer) $cart_item->data['webform_sid'];
 
         // Remove the item from the cart.
@@ -703,13 +711,15 @@ function uc_webform_webform_submission_insert($node, $submission) {
       db_query("DELETE FROM {webform_submissions} WHERE sid = %d", $remove_sid);
     }
 
-    // Add new items to the cart
+    // Add new items to the cart.
     foreach ($node->webform['components'] as $component) {
       if ($component['type'] == 'product_list') {
         if (array_key_exists($component['cid'], $submission->data)) {
           $key = $component['cid'];
           foreach ($submission->data[$key]['value'] as $val) {
-            // This is all very dependent on the way that the product data is stored in the webform_submitted_data table. Take a look there, and also check out the uc_webform README.
+            // This is all very dependent on the way that the product data is
+            // stored in the webform_submitted_data table. Take a look there,
+            // and also check out the uc_webform README.txt file.
               $product_info = explode('_', $val, 2);
             if (is_numeric($product_info[0])) {
               uc_cart_add_item($product_info[0], 1, array('webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_list', 'webform_cid' => $component['cid']));
@@ -725,8 +735,8 @@ function uc_webform_webform_submission_insert($node, $submission) {
 
           $component_data = unserialize(db_result(db_query('SELECT extra FROM {webform_component} WHERE cid = %d AND nid = %d', $component['cid'], $node->nid)));
 
-          // $product_info will contain an array with
-          // the product node ID and the selected model (sku).
+          // $product_info will contain an array with the product node ID and
+          // the selected model (sku).
           $product_info = explode('_', $component_data['product'], 2);
 
           if ($qty > 0) {
@@ -738,11 +748,13 @@ function uc_webform_webform_submission_insert($node, $submission) {
         if (array_key_exists($component['cid'], $submission->data)) {
           $cid = $component['cid'];
           foreach ($submission->data[$cid]['value'] as $key => $prod_option) {
-            // This is all very dependent on the way that the product data is stored in the webform_submitted_data table. Take a look there, and also check out the uc_webform README.
+            // This is all very dependent on the way that the product data is
+            // stored in the webform_submitted_data table. Take a look there,
+            // and also check out the uc_webform README.txt file.
             if ($prod_option) {
               $product_info = explode('_', $key, 2);
-              // The $prod_option variable actually contains both the attribute ID and the option ID
-              // in the form of a string: aid_oid
+              // The $prod_option variable actually contains both the attribute
+              // ID and the option ID in the form of a string: aid_oid.
               $option_info = explode('_', $prod_option, 2);
               uc_cart_add_item($product_info[0], 1, array('attributes' => array($option_info[0] => $option_info[1]), 'webform_sid' => $submission->sid, 'webform_nid' => $node->nid, 'webform_ctype' => 'product_grid', 'webform_cid' => $component['cid']));
             }

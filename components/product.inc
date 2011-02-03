@@ -7,9 +7,8 @@
  */
 
 /**
- * Implementation of hook_theme().
- * Module-specific
  * Implementation of _webform_theme_component().
+ *
  * This allows each Webform component to add information into hook_theme().
  */
 function _webform_theme_product() {
@@ -34,8 +33,7 @@ function theme_uc_webform_display_product($element) {
  * Theme the the display of an individual product when rendered in a webform.
  */
 function theme_uc_webform_render_product($product) {
-
-  $output = '<span>' . $product['title'] . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . $product['price'] . '</span>';
+  $output = '<span>' . check_plain($product['title']) . ', ' . t('Price:') . ' ' . variable_get('uc_currency_sign', '$') . check_plain($product['price']) . '</span>';
 
   return $output;
 }
@@ -148,7 +146,7 @@ function _webform_render_product($component, $value = NULL) {
       }
   }
   else {
-    // Product is out of stock
+    // Product is out of stock.
     $stock_description .= check_plain($node->title) . ' ' . t('is out of stock.') . '<br />';
 
     $element = array(
@@ -164,10 +162,9 @@ function _webform_render_product($component, $value = NULL) {
 }
 
 /**
- * Validate product entry
+ * Validate product entry.
  */
 function _webform_render_product_validate($element, &$form_state) {
-
   // If the user entered a value, make sure that it's a good one.
   if (!empty($element['#value'])) {
     $match = preg_match('/\A[0-9]+\Z/', $element['#value']);
@@ -215,15 +212,15 @@ function _webform_submit_product($component, $value) {
   if (!empty($value)) {
     // Save the nid of the product
     $return[1] = $component['extra']['product'];
-    // Save the quantity
+    // Save the quantity.
     $return[2] = $value;
 
     return $return;
   }
   else {
-    // Save the nid of the product
+    // Save the nid of the product.
     $return[1] = $component['extra']['product'];
-    // Save the quantity
+    // Save the quantity.
     $return[2] = 0;
 
     return $return;
@@ -232,10 +229,8 @@ function _webform_submit_product($component, $value) {
 
 /**
  * Implementation of _webform_analysis_component().
- *
  */
 function _webform_analysis_product($component, $sids = array()) {
-
   $results = db_query("SELECT data, no FROM {webform_submitted_data} WHERE nid = %d AND cid = %d ", $component['nid'], $component['cid']);
 
   $total = 0;

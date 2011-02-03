@@ -1,8 +1,7 @@
 ; $Id$
 name = Ubercart Webform Integration
-description = Integrates the ubercart and webform modules.
+description = Integrates the Ubercart and Webform modules.
+package = Webform
+core = 6.x
 dependencies[] = webform
 dependencies[] = uc_product
-core = 6.x
-version = "6.x-1.0-dev"
-package = Webform
