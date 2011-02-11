@@ -54,12 +54,9 @@ function uc_webform_theme() {
  */
 function _uc_webform_autocomplete_products($string = '') {
   $matches = array();
-  $product_types = uc_product_types();
 
   // Limit selection to only those products that do *not* contain attributes.
-  $placeholders = db_placeholders($product_types, 'varchar');
-  $arguments = array_merge($product_types, array($string, 0, 10));
-  $result = db_query_range("SELECT n.nid, n.title, p.model FROM {node} AS n INNER JOIN {uc_products} AS p ON n.nid = p.nid WHERE n.type IN ($placeholders) AND n.title LIKE '%%%s%' AND n.nid NOT IN (SELECT nid FROM {uc_product_attributes}) ", $arguments);
+  $result = db_query("SELECT n.nid, n.title, p.model FROM {node} AS n INNER JOIN {uc_products} AS p ON n.nid = p.nid WHERE n.title LIKE '%%%s%' AND n.nid NOT IN (SELECT nid FROM {uc_product_attributes}) ", $string);
 
   while ($product = db_fetch_object($result)) {
     $matches[$product->nid . '_' . $product->model] = check_plain($product->title);
